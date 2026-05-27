@@ -1,0 +1,1 @@
+public enum GemType {Green, Yellow, Blue, Red};
