@@ -1,4 +1,8 @@
 public class Board {
+    private const int Row = 5;
+    private const int Col = 5;
+    private GemType[,] grid = new GemType[Col,Row];
+
     public Board() {
         for (int i=0; i < grid.GetLength(0); i++) {
             for (int j=0; j < grid.GetLength(1); j++) {
@@ -10,7 +14,7 @@ public class Board {
         grid = initGrid;
     }
     private static GemType RandomGem(){
-    return (GemType)Random.Shared.Next(Enum.GetValues<GemType>().Length);
+    return (GemType)Random.Shared.Next(Enum.GetValues<GemType>().Length - 1);
     }
     private string CompactSymbols(GemType gem){ 
         return gem switch{
@@ -18,15 +22,22 @@ public class Board {
             GemType.Green => "G",
             GemType.Red => "R",
             GemType.Yellow => "Y",
+            GemType.Empty => ".",
             _ => ".!."
         };
     }
-       public HashSet<(int, int)> FindAllMatches() {
-        var all = new HashSet<(int,int)>(FindHorizontal());
-        all.UnionWith(FindVertical());
-        return all;
+
+    public void RemoveMatches(HashSet<(int, int)> matches) {
+        foreach (var (r,c) in matches) {
+            grid[r,c] = GemType.Empty;
+        }
     }
-    public List<(int, int)> FindHorizontal() {
+    public HashSet<(int, int)> FindAllMatches() {
+        var allMatches = new HashSet<(int,int)>(FindHorizontal());
+        allMatches.UnionWith(FindVertical());
+        return allMatches;
+    } 
+    private List<(int, int)> FindHorizontal() {
         List<(int, int)> pos = [];
         for (int i=0; i < grid.GetLength(0); i++) {
             int start = 0;
@@ -53,7 +64,7 @@ public class Board {
         return pos;
     }
 
-    public List<(int, int)> FindVertical() {
+    private List<(int, int)> FindVertical() {
         List<(int,int)> pos = [];
         for (int j=0; j < grid.GetLength(1); j++) {
             int start = 0;
@@ -87,8 +98,4 @@ public class Board {
             Console.WriteLine();
         }
     }
-    private const int Row = 5;
-    private const int Col = 5;
-    private GemType[,] grid = new GemType[Col,Row];
-
 }

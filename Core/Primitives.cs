@@ -1,1 +1,1 @@
-public enum GemType {Green, Yellow, Blue, Red};
+public enum GemType {Green, Yellow, Blue, Red, Empty};
