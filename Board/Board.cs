@@ -21,6 +21,11 @@ public class Board {
             _ => ".!."
         };
     }
+       public HashSet<(int, int)> FindAllMatches() {
+        var all = new HashSet<(int,int)>(FindHorizontal());
+        all.UnionWith(FindVertical());
+        return all;
+    }
     public List<(int, int)> FindHorizontal() {
         List<(int, int)> pos = [];
         for (int i=0; i < grid.GetLength(0); i++) {

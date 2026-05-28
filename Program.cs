@@ -9,12 +9,7 @@
 Board testBoard = new Board(testData);
 testBoard.Print();
 
-var matchesHorizontal = testBoard.FindHorizontal();
+var matchesHorizontal = testBoard.FindAllMatches();
 foreach (var (r,c) in matchesHorizontal) {
     Console.WriteLine($"{r},{c}");
-}
-
-var matchesVertical = testBoard.FindVertical();
-foreach (var (col,row) in matchesVertical) {
-    Console.WriteLine($"{col},{row}");
 }
