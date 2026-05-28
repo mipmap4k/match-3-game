@@ -8,3 +8,7 @@
 
 Board testBoard = new Board(testData);
 testBoard.Print();
+var matches = testBoard.FindHorizontal();
+foreach (var (r,c) in matches) {
+    Console.WriteLine($"{r},{c}");
+}

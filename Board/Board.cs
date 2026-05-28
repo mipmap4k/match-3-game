@@ -21,6 +21,32 @@ public class Board {
             _ => ".!."
         };
     }
+    public List<(int, int)> FindHorizontal() {
+        List<(int, int)> pos = [];
+        for (int i=0; i < grid.GetLength(0); i++) {
+            int start = 0;
+            GemType currColor = grid[i,0];
+            for (int j=0; j < grid.GetLength(1); j++) {
+                if (currColor != grid[i,j]) {
+                    int lenIn = j - start;
+                    if (lenIn >= 3) {
+                        for (int k=start; k < j; k++) {
+                            pos.Add((i,k));
+                        }
+                    }
+                    start = j;
+                    currColor = grid[i,j];
+                }
+            }
+            int lenOut = grid.GetLength(1) - start;
+            if (lenOut >= 3) {
+                for (int k=start; k < grid.GetLength(1); k++) {
+                    pos.Add((i,k));
+                }
+            }
+        }
+        return pos;
+    }
     public void Print() {
         for (int i=0; i < grid.GetLength(0); i++) {
             for (int j=0; j < grid.GetLength(1); j++) {
