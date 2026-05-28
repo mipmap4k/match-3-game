@@ -47,6 +47,33 @@ public class Board {
         }
         return pos;
     }
+
+    public List<(int, int)> FindVertical() {
+        List<(int,int)> pos = [];
+        for (int j=0; j < grid.GetLength(1); j++) {
+            int start = 0;
+            GemType currColor = grid[0,j];
+            for (int i=0; i < grid.GetLength(0); i++) {
+                if (currColor != grid[i,j]) {
+                    int lenIn = i - start;
+                    if (lenIn >= 3) {
+                        for (int k=start; k < i; k++) {
+                            pos.Add((k,j));
+                        }
+                    }
+                    start = i;
+                    currColor = grid[i,j];
+                }
+            }
+            int lenOut = grid.GetLength(0) - start;
+            if (lenOut >= 3) {
+                for (int k=start; k < grid.GetLength(0); k++) {
+                    pos.Add((k,j));
+                }
+            }
+        }
+        return pos;
+    }
     public void Print() {
         for (int i=0; i < grid.GetLength(0); i++) {
             for (int j=0; j < grid.GetLength(1); j++) {
