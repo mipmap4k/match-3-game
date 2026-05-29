@@ -18,3 +18,5 @@ testBoard.RemoveMatches(matches);
 testBoard.Print();
 testBoard.ApplyGravity();
 testBoard.Print();
+testBoard.SpawnNewGem();
+testBoard.Print();

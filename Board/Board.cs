@@ -26,6 +26,15 @@ public class Board {
             _ => ".!."
         };
     }
+    public void SpawnNewGem() {
+        for (int i=0; i < grid.GetLength(0); i++) {
+            for (int j=0; j < grid.GetLength(1); j++) {
+                if (grid[i,j] == GemType.Empty) {
+                    grid[i,j] = RandomGem();
+                }
+            }
+        }
+    }
     public void ApplyGravity() {
         for (int j=0; j < grid.GetLength(1); j++) {
             List<GemType> gems = [];
