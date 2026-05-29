@@ -33,6 +33,11 @@ public class Board {
             Console.WriteLine();
         }
     }
+    public void Swap(int r1, int c1, int r2, int c2) {
+        var temp = grid[r1, c1];
+        grid[r1, c1] = grid[r2, c2];
+        grid[r2, c2] = temp;
+    }
     private HashSet<(int, int)> FindAllMatches() {
         var allMatches = new HashSet<(int,int)>(FindHorizontal());
         allMatches.UnionWith(FindVertical());
