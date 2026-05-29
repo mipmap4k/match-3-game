@@ -14,9 +14,6 @@ foreach (var (r,c) in matches) {
     Console.WriteLine($"{r},{c}");
 }
 
-testBoard.RemoveMatches(matches);
 testBoard.Print();
-testBoard.ApplyGravity();
-testBoard.Print();
-testBoard.SpawnNewGem();
+testBoard.Update();
 testBoard.Print();

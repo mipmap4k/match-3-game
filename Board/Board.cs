@@ -26,6 +26,17 @@ public class Board {
             _ => ".!."
         };
     }
+    public void Update() {
+        while (true) {
+            HashSet<(int,int)> matches = FindAllMatches();
+            if (matches.Count == 0) {
+                break;
+            }
+            RemoveMatches(matches);
+            ApplyGravity();
+            SpawnNewGem();
+        }
+    }
     public void SpawnNewGem() {
         for (int i=0; i < grid.GetLength(0); i++) {
             for (int j=0; j < grid.GetLength(1); j++) {
