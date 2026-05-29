@@ -33,10 +33,13 @@ public class Board {
             Console.WriteLine();
         }
     }
-    public void Swap(int r1, int c1, int r2, int c2) {
+    public bool Swap(int r1, int c1, int r2, int c2) {
+        bool areNeighbor = ((r1 == r2 && Math.Abs(c1 - c2) == 1) || (c1 == c2 && Math.Abs(r1 - r2) == 1));
+        if (!areNeighbor) return false; 
         var temp = grid[r1, c1];
         grid[r1, c1] = grid[r2, c2];
         grid[r2, c2] = temp;
+        return true;   
     }
     private HashSet<(int, int)> FindAllMatches() {
         var allMatches = new HashSet<(int,int)>(FindHorizontal());
@@ -130,7 +133,7 @@ public class Board {
     private static GemType RandomGem(){
     return (GemType)Random.Shared.Next(GemColorsCount);
     }
-    private string CompactSymbols(GemType gem){ 
+    private static string CompactSymbols(GemType gem){ 
         return gem switch{
             GemType.Blue => "B",
             GemType.Green => "G",
