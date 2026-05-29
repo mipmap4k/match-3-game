@@ -1,7 +1,8 @@
 public class Board {
-    private const int Row = 5;
-    private const int Col = 5;
-    private GemType[,] grid = new GemType[Col,Row];
+    private const int Rows = 5;
+    private const int Cols = 5;
+    private static int GemColorsCount => Enum.GetValues<GemType>().Length - 1;
+    private GemType[,] grid = new GemType[Cols,Rows];
 
     public Board() {
         for (int i=0; i < grid.GetLength(0); i++) {
@@ -12,19 +13,6 @@ public class Board {
     }
     public Board(GemType[,] initGrid) {
         grid = initGrid;
-    }
-    private static GemType RandomGem(){
-    return (GemType)Random.Shared.Next(Enum.GetValues<GemType>().Length - 1);
-    }
-    private string CompactSymbols(GemType gem){ 
-        return gem switch{
-            GemType.Blue => "B",
-            GemType.Green => "G",
-            GemType.Red => "R",
-            GemType.Yellow => "Y",
-            GemType.Empty => ".",
-            _ => ".!."
-        };
     }
     public void Update() {
         while (true) {
@@ -37,16 +25,25 @@ public class Board {
             SpawnNewGem();
         }
     }
-    public void SpawnNewGem() {
+    public void Print() {
         for (int i=0; i < grid.GetLength(0); i++) {
             for (int j=0; j < grid.GetLength(1); j++) {
-                if (grid[i,j] == GemType.Empty) {
-                    grid[i,j] = RandomGem();
-                }
+                Console.Write(CompactSymbols(grid[i,j]) + " ");
             }
+            Console.WriteLine();
         }
     }
-    public void ApplyGravity() {
+    private HashSet<(int, int)> FindAllMatches() {
+        var allMatches = new HashSet<(int,int)>(FindHorizontal());
+        allMatches.UnionWith(FindVertical());
+        return allMatches;
+    }
+    private void RemoveMatches(HashSet<(int, int)> matches) {
+        foreach (var (r,c) in matches) {
+            grid[r,c] = GemType.Empty;
+        }
+    }
+    private void ApplyGravity() {
         for (int j=0; j < grid.GetLength(1); j++) {
             List<GemType> gems = [];
             for (int i=0; i < grid.GetLength(0); i++) {
@@ -63,17 +60,15 @@ public class Board {
             }
         }
     }
-
-    public void RemoveMatches(HashSet<(int, int)> matches) {
-        foreach (var (r,c) in matches) {
-            grid[r,c] = GemType.Empty;
+    private void SpawnNewGem() {
+        for (int i=0; i < grid.GetLength(0); i++) {
+            for (int j=0; j < grid.GetLength(1); j++) {
+                if (grid[i,j] == GemType.Empty) {
+                    grid[i,j] = RandomGem();
+                }
+            }
         }
     }
-    public HashSet<(int, int)> FindAllMatches() {
-        var allMatches = new HashSet<(int,int)>(FindHorizontal());
-        allMatches.UnionWith(FindVertical());
-        return allMatches;
-    } 
     private List<(int, int)> FindHorizontal() {
         List<(int, int)> pos = [];
         for (int i=0; i < grid.GetLength(0); i++) {
@@ -127,12 +122,17 @@ public class Board {
         }
         return pos;
     }
-    public void Print() {
-        for (int i=0; i < grid.GetLength(0); i++) {
-            for (int j=0; j < grid.GetLength(1); j++) {
-                Console.Write(CompactSymbols(grid[i,j]) + " ");
-            }
-            Console.WriteLine();
-        }
+    private static GemType RandomGem(){
+    return (GemType)Random.Shared.Next(GemColorsCount);
+    }
+    private string CompactSymbols(GemType gem){ 
+        return gem switch{
+            GemType.Blue => "B",
+            GemType.Green => "G",
+            GemType.Red => "R",
+            GemType.Yellow => "Y",
+            GemType.Empty => ".",
+            _ => ".!."
+        };
     }
 }

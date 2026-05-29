@@ -8,12 +8,6 @@
 
 Board testBoard = new Board(testData);
 testBoard.Print();
-
-var matches = testBoard.FindAllMatches();
-foreach (var (r,c) in matches) {
-    Console.WriteLine($"{r},{c}");
-}
-
-testBoard.Print();
+Console.WriteLine();
 testBoard.Update();
 testBoard.Print();
