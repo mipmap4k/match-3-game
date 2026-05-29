@@ -1,6 +1,6 @@
 ﻿GemType[,] testData = new GemType[,] {
     { GemType.Green, GemType.Empty, GemType.Green, GemType.Green, GemType.Green },
-    { GemType.Red, GemType.Green, GemType.Green, GemType.Green, GemType.Red },
+    { GemType.Yellow, GemType.Green, GemType.Green, GemType.Green, GemType.Red },
     { GemType.Red, GemType.Green, GemType.Red, GemType.Red, GemType.Green },
     { GemType.Red, GemType.Green, GemType.Red, GemType.Red, GemType.Green },
     { GemType.Red, GemType.Green, GemType.Red, GemType.Red, GemType.Green },
@@ -15,4 +15,6 @@ foreach (var (r,c) in matches) {
 }
 
 testBoard.RemoveMatches(matches);
+testBoard.Print();
+testBoard.ApplyGravity();
 testBoard.Print();

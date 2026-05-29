@@ -26,6 +26,23 @@ public class Board {
             _ => ".!."
         };
     }
+    public void ApplyGravity() {
+        for (int j=0; j < grid.GetLength(1); j++) {
+            List<GemType> gems = [];
+            for (int i=0; i < grid.GetLength(0); i++) {
+                if (grid[i,j] != GemType.Empty) {
+                    gems.Add(grid[i,j]);
+                }
+            }
+            for (int i=0; i < grid.GetLength(0); i++) {
+                grid[i,j] = GemType.Empty;
+            }
+            for (int i = grid.GetLength(0)- 1; i >= 0 && gems.Count > 0; i--) {
+                grid[i,j] = gems[^1];
+                gems.RemoveAt(gems.Count - 1);      
+            }
+        }
+    }
 
     public void RemoveMatches(HashSet<(int, int)> matches) {
         foreach (var (r,c) in matches) {
