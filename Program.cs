@@ -15,15 +15,20 @@ while (true) {
         break;
     }
     string[] cords = input.Split(' ');
-    int r1 = int.Parse(cords[0]);
-    int c1 = int.Parse(cords[1]);
-    int r2 = int.Parse(cords[2]);
-    int c2 = int.Parse(cords[3]);
-    if (testBoard.Swap(r1, c1, r2, c2)) {
-        testBoard.Update();
-    } else {
-      Console.WriteLine("НЕПРАВИЛЬНЫЕ корды");  
+    int startRow = int.Parse(cords[0]);
+    int startCol = int.Parse(cords[1]);
+    int endRow = int.Parse(cords[2]);
+    int endCol = int.Parse(cords[3]);
+    if (testBoard.Swap(startRow, startCol, endRow, endCol)) {
+        if (testBoard.HasMatches()) {
+            testBoard.Update();
+        } else {
+            testBoard.Print();
+            Console.WriteLine("ZOMBI virus");
+             testBoard.Swap(startRow, startCol, endRow, endCol);
+        }
     }
+    testBoard.Update();
 }
 // testBoard.Print();
 // Console.WriteLine();

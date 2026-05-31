@@ -33,6 +33,9 @@ public class Board {
             Console.WriteLine();
         }
     }
+    public bool HasMatches() {
+        return FindAllMatches().Count > 0;
+    }
     public bool Swap(int startRow, int startCol, int endRow, int endCol) {
         bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
         if (!areNeighbor) return false; 
