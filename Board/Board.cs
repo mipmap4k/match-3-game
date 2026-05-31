@@ -2,17 +2,17 @@ public class Board {
     private const int Rows = 5;
     private const int Cols = 5;
     private static int GemColorsCount => Enum.GetValues<GemType>().Length - 1;
-    private GemType[,] grid = new GemType[Cols,Rows];
+    private GemType[,] gameBoard = new GemType[Cols,Rows];
 
     public Board() {
-        for (int i=0; i < grid.GetLength(0); i++) {
-            for (int j=0; j < grid.GetLength(1); j++) {
-                grid[i,j] = RandomGem();
+        for (int i=0; i < gameBoard.GetLength(0); i++) {
+            for (int j=0; j < gameBoard.GetLength(1); j++) {
+                gameBoard[i,j] = RandomGem();
             }
         }
     }
-    public Board(GemType[,] initGrid) {
-        grid = initGrid;
+    public Board(GemType[,] initBoard) {
+        gameBoard = initBoard;
     }
     public void Update() {
         while (true) {
@@ -26,19 +26,19 @@ public class Board {
         }
     }
     public void Print() {
-        for (int i=0; i < grid.GetLength(0); i++) {
-            for (int j=0; j < grid.GetLength(1); j++) {
-                Console.Write(CompactSymbols(grid[i,j]) + " ");
+        for (int i=0; i < gameBoard.GetLength(0); i++) {
+            for (int j=0; j < gameBoard.GetLength(1); j++) {
+                Console.Write(CompactSymbols(gameBoard[i,j]) + " ");
             }
             Console.WriteLine();
         }
     }
-    public bool Swap(int r1, int c1, int r2, int c2) {
-        bool areNeighbor = ((r1 == r2 && Math.Abs(c1 - c2) == 1) || (c1 == c2 && Math.Abs(r1 - r2) == 1));
+    public bool Swap(int startRow, int startCol, int endRow, int endCol) {
+        bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
         if (!areNeighbor) return false; 
-        var temp = grid[r1, c1];
-        grid[r1, c1] = grid[r2, c2];
-        grid[r2, c2] = temp;
+        var temp = gameBoard[startRow, startCol];
+        gameBoard[startRow, startCol] = gameBoard[endRow, endCol];
+        gameBoard[endRow, endCol] = temp;
         return true;   
     }
     private HashSet<(int, int)> FindAllMatches() {
@@ -48,42 +48,42 @@ public class Board {
     }
     private void RemoveMatches(HashSet<(int, int)> matches) {
         foreach (var (r,c) in matches) {
-            grid[r,c] = GemType.Empty;
+            gameBoard[r,c] = GemType.Empty;
         }
     }
     private void ApplyGravity() {
-        for (int j=0; j < grid.GetLength(1); j++) {
+        for (int j=0; j < gameBoard.GetLength(1); j++) {
             List<GemType> gems = [];
-            for (int i=0; i < grid.GetLength(0); i++) {
-                if (grid[i,j] != GemType.Empty) {
-                    gems.Add(grid[i,j]);
+            for (int i=0; i < gameBoard.GetLength(0); i++) {
+                if (gameBoard[i,j] != GemType.Empty) {
+                    gems.Add(gameBoard[i,j]);
                 }
             }
-            for (int i=0; i < grid.GetLength(0); i++) {
-                grid[i,j] = GemType.Empty;
+            for (int i=0; i < gameBoard.GetLength(0); i++) {
+                gameBoard[i,j] = GemType.Empty;
             }
-            for (int i = grid.GetLength(0)- 1; i >= 0 && gems.Count > 0; i--) {
-                grid[i,j] = gems[^1];
+            for (int i = gameBoard.GetLength(0)- 1; i >= 0 && gems.Count > 0; i--) {
+                gameBoard[i,j] = gems[^1];
                 gems.RemoveAt(gems.Count - 1);      
             }
         }
     }
     private void SpawnNewGem() {
-        for (int i=0; i < grid.GetLength(0); i++) {
-            for (int j=0; j < grid.GetLength(1); j++) {
-                if (grid[i,j] == GemType.Empty) {
-                    grid[i,j] = RandomGem();
+        for (int i=0; i < gameBoard.GetLength(0); i++) {
+            for (int j=0; j < gameBoard.GetLength(1); j++) {
+                if (gameBoard[i,j] == GemType.Empty) {
+                    gameBoard[i,j] = RandomGem();
                 }
             }
         }
     }
     private List<(int, int)> FindHorizontal() {
         List<(int, int)> pos = [];
-        for (int i=0; i < grid.GetLength(0); i++) {
+        for (int i=0; i < gameBoard.GetLength(0); i++) {
             int start = 0;
-            GemType currColor = grid[i,0];
-            for (int j=0; j < grid.GetLength(1); j++) {
-                if (currColor != grid[i,j]) {
+            GemType currColor = gameBoard[i,0];
+            for (int j=0; j < gameBoard.GetLength(1); j++) {
+                if (currColor != gameBoard[i,j]) {
                     int lenIn = j - start;
                     if (lenIn >= 3) {
                         for (int k=start; k < j; k++) {
@@ -91,12 +91,12 @@ public class Board {
                         }
                     }
                     start = j;
-                    currColor = grid[i,j];
+                    currColor = gameBoard[i,j];
                 }
             }
-            int lenOut = grid.GetLength(1) - start;
+            int lenOut = gameBoard.GetLength(1) - start;
             if (lenOut >= 3) {
-                for (int k=start; k < grid.GetLength(1); k++) {
+                for (int k=start; k < gameBoard.GetLength(1); k++) {
                     pos.Add((i,k));
                 }
             }
@@ -106,11 +106,11 @@ public class Board {
 
     private List<(int, int)> FindVertical() {
         List<(int,int)> pos = [];
-        for (int j=0; j < grid.GetLength(1); j++) {
+        for (int j=0; j < gameBoard.GetLength(1); j++) {
             int start = 0;
-            GemType currColor = grid[0,j];
-            for (int i=0; i < grid.GetLength(0); i++) {
-                if (currColor != grid[i,j]) {
+            GemType currColor = gameBoard[0,j];
+            for (int i=0; i < gameBoard.GetLength(0); i++) {
+                if (currColor != gameBoard[i,j]) {
                     int lenIn = i - start;
                     if (lenIn >= 3) {
                         for (int k=start; k < i; k++) {
@@ -118,12 +118,12 @@ public class Board {
                         }
                     }
                     start = i;
-                    currColor = grid[i,j];
+                    currColor = gameBoard[i,j];
                 }
             }
-            int lenOut = grid.GetLength(0) - start;
+            int lenOut = gameBoard.GetLength(0) - start;
             if (lenOut >= 3) {
-                for (int k=start; k < grid.GetLength(0); k++) {
+                for (int k=start; k < gameBoard.GetLength(0); k++) {
                     pos.Add((k,j));
                 }
             }
