@@ -1,7 +1,7 @@
 namespace Match3.Logic;
 public class Board {
-    private const int Rows = 5;
-    private const int Cols = 5;
+    public const int Rows = 5;
+    public const int Cols = 5;
     private static int GemColorsCount => Enum.GetValues<GemType>().Length - 1;
     private GemType[,] gameBoard = new GemType[Cols,Rows];
 
@@ -11,11 +11,12 @@ public class Board {
                 gameBoard[i,j] = RandomGem();
             }
         }
+        CycleTick();
     }
     public Board(GemType[,] initBoard) {
         gameBoard = initBoard;
     }
-    public void CycleTik() {
+    public void CycleTick() {
         while (true) {
             HashSet<(int,int)> matches = FindAllMatches();
             if (matches.Count == 0) {
@@ -34,18 +35,21 @@ public class Board {
             Console.WriteLine();
         }
     }
-    public bool HasMatches() {
-        return FindAllMatches().Count > 0;
-    }
     public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
         bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
         if (!areNeighbor) return false; 
         Swap(startRow, startCol, endRow, endCol);
-        if (FindAllMatches().Count == 0) {
+        if (!HasMatches()) {
             Swap(startRow, startCol, endRow, endCol);
             return false;
         }
         return true;   
+    }
+    public GemType GetCell(int row, int col) {
+        return gameBoard[row,col];
+    }
+    public bool HasMatches() {
+        return FindAllMatches().Count > 0;
     }
     private HashSet<(int, int)> FindAllMatches() {
         var allMatches = new HashSet<(int,int)>(FindHorizontal());

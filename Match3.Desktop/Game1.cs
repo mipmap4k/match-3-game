@@ -10,6 +10,8 @@ public class Game1 : Game
     private GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch;
     private Board _board;
+    private Texture2D _pixel;
+    private const int CellSize = 64;
 
     public Game1()
     {
@@ -29,6 +31,9 @@ public class Game1 : Game
     protected override void LoadContent()
     {
         _spriteBatch = new SpriteBatch(GraphicsDevice);
+        _pixel = new Texture2D(GraphicsDevice, 1, 1);
+        _pixel.SetData(new[] {Color.White});
+
 
         // TODO: use this.Content to load your game content here
     }
@@ -46,9 +51,22 @@ public class Game1 : Game
     protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
-
-        // TODO: Add your drawing code here
-
+        _spriteBatch.Begin();
+        for (int col=0; col < Board.Cols; col++) {
+            for (int row=0; row < Board.Rows; row++) {
+                _spriteBatch.Draw(_pixel,new Rectangle(col * CellSize, row * CellSize, CellSize - 4, CellSize - 4), GemToColor(_board.GetCell(row, col)));
+            }
+        }
+        _spriteBatch.End();
         base.Draw(gameTime);
     }
+    private static Color GemToColor(GemType gem) => gem switch
+{
+    GemType.Red    => Color.Red,
+    GemType.Green  => Color.Green,
+    GemType.Blue   => Color.Blue,
+    GemType.Yellow => Color.Yellow,
+    GemType.Empty  => Color.DimGray,
+    _              => Color.Magenta
+};
 }
