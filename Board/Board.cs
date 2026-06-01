@@ -14,7 +14,7 @@ public class Board {
     public Board(GemType[,] initBoard) {
         gameBoard = initBoard;
     }
-    public void Update() {
+    public void CycleTik() {
         while (true) {
             HashSet<(int,int)> matches = FindAllMatches();
             if (matches.Count == 0) {
@@ -36,12 +36,14 @@ public class Board {
     public bool HasMatches() {
         return FindAllMatches().Count > 0;
     }
-    public bool Swap(int startRow, int startCol, int endRow, int endCol) {
+    public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
         bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
         if (!areNeighbor) return false; 
-        var temp = gameBoard[startRow, startCol];
-        gameBoard[startRow, startCol] = gameBoard[endRow, endCol];
-        gameBoard[endRow, endCol] = temp;
+        Swap(startRow, startCol, endRow, endCol);
+        if (FindAllMatches().Count == 0) {
+            Swap(startRow, startCol, endRow, endCol);
+            return false;
+        }
         return true;   
     }
     private HashSet<(int, int)> FindAllMatches() {
@@ -132,6 +134,11 @@ public class Board {
             }
         }
         return pos;
+    }
+    private void Swap(int startRow, int startCol, int endRow, int endCol) {
+        var temp = gameBoard[startRow, startCol];
+        gameBoard[startRow, startCol] = gameBoard[endRow, endCol];
+        gameBoard[endRow, endCol] = temp;
     }
     private static GemType RandomGem(){
     return (GemType)Random.Shared.Next(GemColorsCount);
