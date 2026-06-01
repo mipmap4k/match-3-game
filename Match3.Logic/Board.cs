@@ -1,3 +1,4 @@
+namespace Match3.Logic;
 public class Board {
     private const int Rows = 5;
     private const int Cols = 5;
