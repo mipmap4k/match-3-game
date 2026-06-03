@@ -99,19 +99,19 @@ public class Game1 : Game
                     offsetY + row * CellSize, 
                     CellSize - 4, 
                     CellSize - 4), 
-                    GemToColor(_board.GetCell(row, col)));
+                    GemToColor(_board.GetCell(row, col).Color));
             }
         }
         _spriteBatch.End();
         base.Draw(gameTime);
     }
-    private static Color GemToColor(GemType gem) => gem switch
+    private static Color GemToColor(GemColor gem) => gem switch
 {
-    GemType.Red    => Color.Red,
-    GemType.Green  => Color.Green,
-    GemType.Blue   => Color.Blue,
-    GemType.Yellow => Color.Yellow,
-    GemType.Empty  => Color.DimGray,
-    _              => Color.Magenta
+    GemColor.Red => Color.Red,
+    GemColor.Green => Color.Green,
+    GemColor.Blue => Color.Blue,
+    GemColor.Yellow => Color.Yellow,
+    GemColor.None => Color.DimGray,
+    _ => Color.Magenta
 };
 }

@@ -2,8 +2,8 @@ namespace Match3.Logic;
 public class Board {
     public const int Rows = 5;
     public const int Cols = 5;
-    private static int GemColorsCount => Enum.GetValues<GemType>().Length - 1;
-    private GemType[,] gameBoard = new GemType[Cols,Rows];
+    private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
+    private Cell[,] gameBoard = new Cell[Cols,Rows];
 
     public Board() {
         for (int i=0; i < gameBoard.GetLength(0); i++) {
@@ -13,7 +13,7 @@ public class Board {
         }
         CycleTick();
     }
-    public Board(GemType[,] initBoard) {
+    public Board(Cell[,] initBoard) {
         gameBoard = initBoard;
     }
     public void CycleTick() {
@@ -30,7 +30,7 @@ public class Board {
     public void Print() {
         for (int i=0; i < gameBoard.GetLength(0); i++) {
             for (int j=0; j < gameBoard.GetLength(1); j++) {
-                Console.Write(CompactSymbols(gameBoard[i,j]) + " ");
+                Console.Write(CompactSymbols(gameBoard[i,j].Color) + " ");
             }
             Console.WriteLine();
         }
@@ -45,7 +45,7 @@ public class Board {
         }
         return true;   
     }
-    public GemType GetCell(int row, int col) {
+    public Cell GetCell(int row, int col) {
         return gameBoard[row,col];
     }
     public bool HasMatches() {
@@ -58,19 +58,19 @@ public class Board {
     }
     private void RemoveMatches(HashSet<(int, int)> matches) {
         foreach (var (r,c) in matches) {
-            gameBoard[r,c] = GemType.Empty;
+            gameBoard[r,c] = new Cell(GemColor.None);
         }
     }
     private void ApplyGravity() {
         for (int j=0; j < gameBoard.GetLength(1); j++) {
-            List<GemType> gems = [];
+            List<Cell> gems = [];
             for (int i=0; i < gameBoard.GetLength(0); i++) {
-                if (gameBoard[i,j] != GemType.Empty) {
+                if (gameBoard[i,j].Color != GemColor.None) {
                     gems.Add(gameBoard[i,j]);
                 }
             }
             for (int i=0; i < gameBoard.GetLength(0); i++) {
-                gameBoard[i,j] = GemType.Empty;
+                gameBoard[i,j] = new Cell(GemColor.None);
             }
             for (int i = gameBoard.GetLength(0)- 1; i >= 0 && gems.Count > 0; i--) {
                 gameBoard[i,j] = gems[^1];
@@ -81,7 +81,7 @@ public class Board {
     private void SpawnNewGem() {
         for (int i=0; i < gameBoard.GetLength(0); i++) {
             for (int j=0; j < gameBoard.GetLength(1); j++) {
-                if (gameBoard[i,j] == GemType.Empty) {
+                if (gameBoard[i,j].Color == GemColor.None) {
                     gameBoard[i,j] = RandomGem();
                 }
             }
@@ -91,9 +91,9 @@ public class Board {
         List<(int, int)> pos = [];
         for (int i=0; i < gameBoard.GetLength(0); i++) {
             int start = 0;
-            GemType currColor = gameBoard[i,0];
+            GemColor currColor = gameBoard[i,0].Color;
             for (int j=0; j < gameBoard.GetLength(1); j++) {
-                if (currColor != gameBoard[i,j]) {
+                if (currColor != gameBoard[i,j].Color) {
                     int lenIn = j - start;
                     if (lenIn >= 3) {
                         for (int k=start; k < j; k++) {
@@ -101,7 +101,7 @@ public class Board {
                         }
                     }
                     start = j;
-                    currColor = gameBoard[i,j];
+                    currColor = gameBoard[i,j].Color;
                 }
             }
             int lenOut = gameBoard.GetLength(1) - start;
@@ -118,9 +118,9 @@ public class Board {
         List<(int,int)> pos = [];
         for (int j=0; j < gameBoard.GetLength(1); j++) {
             int start = 0;
-            GemType currColor = gameBoard[0,j];
+            GemColor currColor = gameBoard[0,j].Color;
             for (int i=0; i < gameBoard.GetLength(0); i++) {
-                if (currColor != gameBoard[i,j]) {
+                if (currColor != gameBoard[i,j].Color) {
                     int lenIn = i - start;
                     if (lenIn >= 3) {
                         for (int k=start; k < i; k++) {
@@ -128,7 +128,7 @@ public class Board {
                         }
                     }
                     start = i;
-                    currColor = gameBoard[i,j];
+                    currColor = gameBoard[i,j].Color;
                 }
             }
             int lenOut = gameBoard.GetLength(0) - start;
@@ -145,16 +145,17 @@ public class Board {
         gameBoard[startRow, startCol] = gameBoard[endRow, endCol];
         gameBoard[endRow, endCol] = temp;
     }
-    private static GemType RandomGem(){
-    return (GemType)Random.Shared.Next(GemColorsCount);
+    private static Cell RandomGem(){
+        var color = (GemColor)Random.Shared.Next(GemColorsCount);
+        return new Cell(color);
     }
-    private static string CompactSymbols(GemType gem){ 
+    private static string CompactSymbols(GemColor gem){ 
         return gem switch{
-            GemType.Blue => "B",
-            GemType.Green => "G",
-            GemType.Red => "R",
-            GemType.Yellow => "Y",
-            GemType.Empty => ".",
+            GemColor.Blue => "B",
+            GemColor.Green => "G",
+            GemColor.Red => "R",
+            GemColor.Yellow => "Y",
+            GemColor.None => ".",
             _ => ".!."
         };
     }
