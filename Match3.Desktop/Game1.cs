@@ -11,7 +11,28 @@ public class Game1 : Game
     private SpriteBatch _spriteBatch;
     private Board _board;
     private Texture2D _pixel;
+    private MouseState _previousMouseState;
+    private bool _hasSelection = false;
+    private int _selectedRow;
+    private int _selectedCol;
     private const int CellSize = 64;
+    private (int row, int col) PixelToCell(int mouseX, int mouseY) {
+        var (offsetX, offsetY) = GetBoardOffset();
+        var reliableX = mouseX - offsetX;
+        var reliableY = mouseY - offsetY;
+        if (reliableX < 0 || reliableY < 0) return (-1, -1);
+        int col = reliableX / CellSize;
+        int row = reliableY / CellSize;
+        if (row >= Board.Rows || col >= Board.Cols) return (-1, -1);
+        return (row, col);
+    }
+    private (int offsetX, int offsetY) GetBoardOffset() {
+    int boardWidth = Board.Cols * CellSize;
+    int boardHeight = Board.Rows * CellSize;
+    int offsetX = (GraphicsDevice.Viewport.Width - boardWidth) / 2;
+    int offsetY = (GraphicsDevice.Viewport.Height - boardHeight) / 2;
+    return (offsetX, offsetY);
+    }
 
     public Game1()
     {
@@ -43,18 +64,42 @@ public class Game1 : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
-        // TODO: Add your update logic here
+        MouseState currentMouseState = Mouse.GetState();
+        bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
+         if (clicked) {
+            var (row, col) = PixelToCell(currentMouseState.X, currentMouseState.Y);
+            if (!_hasSelection) {
+                _selectedCol = col;
+                _selectedRow = row;
+                _hasSelection = true;
+            } else {
+                bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
+                if (tryMove) {
+                    _board.CycleTick();
+                } else {
+                    Window.Title = "Invalid ZOMBE";
+                }
+                _hasSelection = false;
+            }
+        }
+        _previousMouseState = currentMouseState;
 
         base.Update(gameTime);
     }
 
     protected override void Draw(GameTime gameTime)
     {
+        var (offsetX, offsetY) = GetBoardOffset();
         GraphicsDevice.Clear(Color.CornflowerBlue);
         _spriteBatch.Begin();
         for (int col=0; col < Board.Cols; col++) {
             for (int row=0; row < Board.Rows; row++) {
-                _spriteBatch.Draw(_pixel,new Rectangle(col * CellSize, row * CellSize, CellSize - 4, CellSize - 4), GemToColor(_board.GetCell(row, col)));
+                _spriteBatch.Draw(_pixel,new Rectangle( 
+                    offsetX + col * CellSize, 
+                    offsetY + row * CellSize, 
+                    CellSize - 4, 
+                    CellSize - 4), 
+                    GemToColor(_board.GetCell(row, col)));
             }
         }
         _spriteBatch.End();
