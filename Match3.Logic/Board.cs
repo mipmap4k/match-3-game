@@ -27,14 +27,6 @@ public class Board {
             SpawnNewGem();
         }
     }
-    public void Print() {
-        for (int i=0; i < gameBoard.GetLength(0); i++) {
-            for (int j=0; j < gameBoard.GetLength(1); j++) {
-                Console.Write(CompactSymbols(gameBoard[i,j].Color) + " ");
-            }
-            Console.WriteLine();
-        }
-    }
     public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
         bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
         if (!areNeighbor) return false; 
@@ -148,15 +140,5 @@ public class Board {
     private static Cell RandomGem(){
         var color = (GemColor)Random.Shared.Next(GemColorsCount);
         return new Cell(color);
-    }
-    private static string CompactSymbols(GemColor gem){ 
-        return gem switch{
-            GemColor.Blue => "B",
-            GemColor.Green => "G",
-            GemColor.Red => "R",
-            GemColor.Yellow => "Y",
-            GemColor.None => ".",
-            _ => ".!."
-        };
     }
 }
