@@ -23,7 +23,8 @@ public class Board {
             if (matches.Count == 0) {
                 break;
             }
-            RemoveMatches(matches);
+            var bombPositions = FindIntersections(matches);
+            RemoveMatches(matches, bombPositions);
             ApplyGravity();
             SpawnNewGem();
         }
@@ -51,7 +52,7 @@ public class Board {
         allMatches.AddRange(FindVertical());
         return allMatches;
     }
-    private void RemoveMatches(List<Match> matches) {
+    private void RemoveMatches(List<Match> matches, HashSet<(int, int)> bombPositions) {
         foreach (var match in matches) {
             BonusType bonus = BonusType.None;
             if (match.Cells.Count == 4) {
@@ -68,7 +69,9 @@ public class Board {
                 }
             }
             foreach (var (row,col) in match.Cells) {
-                if (bonus != BonusType.None && (row, col) == bonusPos) {
+                if (bombPositions.Contains((row, col))) {
+                    gameBoard[row, col] = new Cell(match.Color, BonusType.Bomb);
+                } else if (bonus != BonusType.None && (row, col) == bonusPos) {
                     gameBoard[row, col] = new Cell(match.Color, bonus);
                 } else {
                     gameBoard[row, col] = new Cell(GemColor.None);
@@ -102,6 +105,25 @@ public class Board {
             }
         }
     }
+    private HashSet<(int, int)> FindIntersections(List<Match> matches) {
+    var bombPositions = new HashSet<(int, int)>();
+    
+    foreach (var h in matches) {
+        if (!h.IsHorizontal) continue;
+        
+        foreach (var v in matches) {
+            if (v.IsHorizontal) continue;
+            
+            foreach (var cell in h.Cells) {
+                if (v.Cells.Contains(cell)) {
+                    bombPositions.Add(cell);
+                }
+            }
+        }
+    }
+    
+    return bombPositions;
+}
     private List<Match> FindHorizontal() {
         List<Match> pos = [];
         for (int row=0; row < gameBoard.GetLength(0); row++) {
