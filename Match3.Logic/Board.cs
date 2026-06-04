@@ -4,11 +4,12 @@ public class Board {
     public const int Cols = 5;
     private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
     private Cell[,] gameBoard = new Cell[Cols,Rows];
+    private (int row, int col)? lastMoveEnd = null;
 
     public Board() {
-        for (int i=0; i < gameBoard.GetLength(0); i++) {
-            for (int j=0; j < gameBoard.GetLength(1); j++) {
-                gameBoard[i,j] = RandomGem();
+        for (int row=0; row < gameBoard.GetLength(0); row++) {
+            for (int col=0; col < gameBoard.GetLength(1); col++) {
+                gameBoard[row,col] = RandomGem();
             }
         }
         CycleTick();
@@ -18,7 +19,7 @@ public class Board {
     }
     public void CycleTick() {
         while (true) {
-            HashSet<(int,int)> matches = FindAllMatches();
+            var matches = FindAllMatches();
             if (matches.Count == 0) {
                 break;
             }
@@ -28,13 +29,14 @@ public class Board {
         }
     }
     public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
-        bool areNeighbor = ((startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1));
+        bool areNeighbor = (startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1);
         if (!areNeighbor) return false; 
         Swap(startRow, startCol, endRow, endCol);
         if (!HasMatches()) {
             Swap(startRow, startCol, endRow, endCol);
             return false;
         }
+        lastMoveEnd = (endRow, endCol);
         return true;   
     }
     public Cell GetCell(int row, int col) {
@@ -43,91 +45,120 @@ public class Board {
     public bool HasMatches() {
         return FindAllMatches().Count > 0;
     }
-    private HashSet<(int, int)> FindAllMatches() {
-        var allMatches = new HashSet<(int,int)>(FindHorizontal());
-        allMatches.UnionWith(FindVertical());
+    private List<Match> FindAllMatches() {
+        List<Match> allMatches = [];
+        allMatches.AddRange(FindHorizontal());
+        allMatches.AddRange(FindVertical());
         return allMatches;
     }
-    private void RemoveMatches(HashSet<(int, int)> matches) {
-        foreach (var (r,c) in matches) {
-            gameBoard[r,c] = new Cell(GemColor.None);
+    private void RemoveMatches(List<Match> matches) {
+        foreach (var match in matches) {
+            BonusType bonus = BonusType.None;
+            if (match.Cells.Count == 4) {
+                bonus = match.IsHorizontal ? BonusType.LineH : BonusType.LineV;
+            } else if (match.Cells.Count >= 5) {
+                bonus = BonusType.Bomb;
+            }
+            (int row, int col) bonusPos = (-1,-1);
+            if (bonus != BonusType.None) {
+                if (lastMoveEnd.HasValue && match.Cells.Contains(lastMoveEnd.Value)) {
+                    bonusPos = lastMoveEnd.Value;
+                } else {
+                    bonusPos = match.Cells[match.Cells.Count / 2];
+                }
+            }
+            foreach (var (row,col) in match.Cells) {
+                if (bonus != BonusType.None && (row, col) == bonusPos) {
+                    gameBoard[row, col] = new Cell(match.Color, bonus);
+                } else {
+                    gameBoard[row, col] = new Cell(GemColor.None);
+                }
+            }
         }
     }
     private void ApplyGravity() {
-        for (int j=0; j < gameBoard.GetLength(1); j++) {
+        for (int col=0; col < gameBoard.GetLength(1); col++) {
             List<Cell> gems = [];
-            for (int i=0; i < gameBoard.GetLength(0); i++) {
-                if (gameBoard[i,j].Color != GemColor.None) {
-                    gems.Add(gameBoard[i,j]);
+            for (int row=0; row < gameBoard.GetLength(0); row++) {
+                if (gameBoard[row,col].Color != GemColor.None) {
+                    gems.Add(gameBoard[row,col]);
                 }
             }
-            for (int i=0; i < gameBoard.GetLength(0); i++) {
-                gameBoard[i,j] = new Cell(GemColor.None);
+            for (int row=0; row < gameBoard.GetLength(0); row++) {
+                gameBoard[row,col] = new Cell(GemColor.None);
             }
-            for (int i = gameBoard.GetLength(0)- 1; i >= 0 && gems.Count > 0; i--) {
-                gameBoard[i,j] = gems[^1];
+            for (int row = gameBoard.GetLength(0)- 1; row >= 0 && gems.Count > 0; row--) {
+                gameBoard[row,col] = gems[^1];
                 gems.RemoveAt(gems.Count - 1);      
             }
         }
     }
     private void SpawnNewGem() {
-        for (int i=0; i < gameBoard.GetLength(0); i++) {
-            for (int j=0; j < gameBoard.GetLength(1); j++) {
-                if (gameBoard[i,j].Color == GemColor.None) {
-                    gameBoard[i,j] = RandomGem();
+        for (int row=0; row < gameBoard.GetLength(0); row++) {
+            for (int col=0; col < gameBoard.GetLength(1); col++) {
+                if (gameBoard[row,col].Color == GemColor.None) {
+                    gameBoard[row,col] = RandomGem();
                 }
             }
         }
     }
-    private List<(int, int)> FindHorizontal() {
-        List<(int, int)> pos = [];
-        for (int i=0; i < gameBoard.GetLength(0); i++) {
+    private List<Match> FindHorizontal() {
+        List<Match> pos = [];
+        for (int row=0; row < gameBoard.GetLength(0); row++) {
             int start = 0;
-            GemColor currColor = gameBoard[i,0].Color;
-            for (int j=0; j < gameBoard.GetLength(1); j++) {
-                if (currColor != gameBoard[i,j].Color) {
-                    int lenIn = j - start;
+            GemColor currColor = gameBoard[row,0].Color;
+            for (int col=0; col < gameBoard.GetLength(1); col++) {
+                if (currColor != gameBoard[row,col].Color) {
+                    int lenIn = col - start;
                     if (lenIn >= 3) {
-                        for (int k=start; k < j; k++) {
-                            pos.Add((i,k));
+                        List<(int, int)> groupIn = [];
+                        for (int subCol=start; subCol < col; subCol++) {
+                            groupIn.Add((row,subCol));
                         }
+                        pos.Add(new Match(Cells: groupIn, IsHorizontal: true, Color: currColor));
                     }
-                    start = j;
-                    currColor = gameBoard[i,j].Color;
+                    start = col;
+                    currColor = gameBoard[row,col].Color;
                 }
             }
             int lenOut = gameBoard.GetLength(1) - start;
             if (lenOut >= 3) {
-                for (int k=start; k < gameBoard.GetLength(1); k++) {
-                    pos.Add((i,k));
+                List<(int, int)> groupOut = []; 
+                for (int subCol=start; subCol < gameBoard.GetLength(1); subCol++) {
+                    groupOut.Add((row,subCol));
                 }
+                pos.Add(new Match(Cells: groupOut, IsHorizontal: true, Color: currColor));
             }
         }
         return pos;
     }
 
-    private List<(int, int)> FindVertical() {
-        List<(int,int)> pos = [];
-        for (int j=0; j < gameBoard.GetLength(1); j++) {
+    private List<Match> FindVertical() {
+        List<Match> pos = [];
+        for (int col=0; col < gameBoard.GetLength(1); col++) {
             int start = 0;
-            GemColor currColor = gameBoard[0,j].Color;
-            for (int i=0; i < gameBoard.GetLength(0); i++) {
-                if (currColor != gameBoard[i,j].Color) {
-                    int lenIn = i - start;
+            GemColor currColor = gameBoard[0,col].Color;
+            for (int row=0; row < gameBoard.GetLength(0); row++) {
+                if (currColor != gameBoard[row,col].Color) {
+                    int lenIn = row - start;
                     if (lenIn >= 3) {
-                        for (int k=start; k < i; k++) {
-                            pos.Add((k,j));
+                        List<(int, int)> groupIn = [];
+                        for (int subCol=start; subCol < row; subCol++) {
+                            groupIn.Add((subCol,col));
                         }
+                        pos.Add(new Match(Cells: groupIn, IsHorizontal: false, Color: currColor));
                     }
-                    start = i;
-                    currColor = gameBoard[i,j].Color;
+                    start = row;
+                    currColor = gameBoard[row,col].Color;
                 }
             }
             int lenOut = gameBoard.GetLength(0) - start;
             if (lenOut >= 3) {
-                for (int k=start; k < gameBoard.GetLength(0); k++) {
-                    pos.Add((k,j));
+                List<(int, int)> groupOut = [];
+                for (int subCol=start; subCol < gameBoard.GetLength(0); subCol++) {
+                    groupOut.Add((subCol,col));
                 }
+                pos.Add(new Match(Cells: groupOut, IsHorizontal: false, Color: currColor));
             }
         }
         return pos;
