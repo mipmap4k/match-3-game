@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Match3.Desktop.Graphics;
+namespace Match3.Graphics;
 
 /// <summary>
 /// Хранит набор именованных регионов одной большой текстуры (спрайт-листа).

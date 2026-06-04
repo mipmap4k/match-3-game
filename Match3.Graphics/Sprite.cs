@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Match3.Desktop.Graphics;
+namespace Match3.Graphics;
 
 /// <summary>
 /// Готовый к отрисовке спрайт с набором визуальных свойств:

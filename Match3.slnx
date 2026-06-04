@@ -5,5 +5,6 @@
     <Platform Name="x86" />
   </Configurations>
   <Project Path="Match3.Desktop/Match3.Desktop.csproj" />
+  <Project Path="Match3.Graphics/Match3.Graphics.csproj" />
   <Project Path="Match3.Logic/Match3.Logic.csproj" />
 </Solution>

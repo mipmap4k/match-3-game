@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace Match3.Desktop.Graphics;
+namespace Match3.Graphics;
 
 /// <summary>
 /// Описывает прямоугольную область внутри текстуры (атласа).

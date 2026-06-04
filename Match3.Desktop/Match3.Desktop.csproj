@@ -28,5 +28,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Match3.Logic\Match3.Logic.csproj" />
+    <ProjectReference Include="..\Match3.Graphics\Match3.Graphics.csproj" />
   </ItemGroup>
 </Project>
