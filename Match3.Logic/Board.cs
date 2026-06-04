@@ -24,7 +24,12 @@ public class Board {
                 break;
             }
             var bombPositions = FindIntersections(matches);
-            RemoveMatches(matches, bombPositions);
+            var bonusQueue = new Queue<(int row, int col, BonusType bonus)>();
+            RemoveMatches(matches, bombPositions, bonusQueue);
+            while (bonusQueue.Count > 0) {
+                var (row, col, bonus) = bonusQueue.Dequeue();
+                TriggerBonus(row, col, bonus, bonusQueue);
+            }
             ApplyGravity();
             SpawnNewGem();
         }
@@ -52,7 +57,19 @@ public class Board {
         allMatches.AddRange(FindVertical());
         return allMatches;
     }
-    private void RemoveMatches(List<Match> matches, HashSet<(int, int)> bombPositions) {
+    private void RemoveMatches(
+        List<Match> matches,
+        HashSet<(int, int)> bombPositions,
+        Queue<(int row, int col, BonusType bonus)> bonusQueue
+         ) {
+        foreach (var match in matches) {
+            foreach (var (row, col) in match.Cells) {
+                BonusType currBonus = gameBoard[row, col].Bonus;
+                if (currBonus != BonusType.None) {
+                    bonusQueue.Enqueue((row, col, currBonus));
+                }
+            }
+        }
         foreach (var match in matches) {
             BonusType bonus = BonusType.None;
             if (match.Cells.Count == 4) {
@@ -103,6 +120,45 @@ public class Board {
                     gameBoard[row,col] = RandomGem();
                 }
             }
+        }
+    }
+    private void TriggerBonus(int row, int col, BonusType bonus, Queue<(int row, int col, BonusType bonus)> bonusQueue) {
+        switch(bonus) {
+            case BonusType.LineH:
+                for (int c=0; c < Cols; c++) {
+                    if (c != col) {
+                        BonusType existingBonus = gameBoard[row, c].Bonus;
+                        if (existingBonus != BonusType.None) {
+                            bonusQueue.Enqueue((row, c, existingBonus));
+                        }
+                    }
+                    gameBoard[row,c] = new Cell(GemColor.None);
+                } break;
+            case BonusType.LineV:
+                for (int r=0; r < Rows; r++){
+                    if (r != row) {
+                        BonusType existingBonus = gameBoard[r, col].Bonus;
+                        if (existingBonus != BonusType.None) {
+                            bonusQueue.Enqueue((r, col, existingBonus));
+                        }
+                    }
+                    gameBoard[r, col] = new Cell(GemColor.None);
+                } break;
+            case BonusType.Bomb:
+                for (int r = row - 1; r <= row + 1; r++) {
+                    for (int c = col - 1; c <= col + 1; c++) {
+                        if (r >= 0 && r < Rows && c >= 0 && c < Cols) {
+                            if (r != row || c != col) {
+                                BonusType existing = gameBoard[r,c].Bonus;
+                                if (existing != BonusType.None) {
+                                    bonusQueue.Enqueue((r, c, existing));
+                                }
+                            }
+                            gameBoard[r,c] = new Cell(GemColor.None);
+                        }
+                    }
+                } break;
+                
         }
     }
     private HashSet<(int, int)> FindIntersections(List<Match> matches) {
