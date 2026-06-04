@@ -1,7 +1,7 @@
 namespace Match3.Logic;
 public class Board {
-    public const int Rows = 5;
-    public const int Cols = 5;
+    public const int Rows = 8;
+    public const int Cols = 8;
     private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
     private Cell[,] gameBoard = new Cell[Cols,Rows];
     private (int row, int col)? lastMoveEnd = null;

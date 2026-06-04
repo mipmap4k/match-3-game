@@ -1,7 +1,9 @@
 ﻿using Match3.Logic;
+using Match3.Graphics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using System.Collections.Generic;
 
 namespace Match3.Desktop;
 
@@ -15,7 +17,13 @@ public class Game1 : Game
     private bool _hasSelection = false;
     private int _selectedRow;
     private int _selectedCol;
+    private TextureAtlas _gemAtlas;
+    private TextureRegion _backgroundBlur;
+    private const int SpriteSize = 100;
     private const int CellSize = 64;
+    private void AddGem(string name, int row, int col) {
+        _gemAtlas.AddRegion(name, col * SpriteSize, row * SpriteSize, SpriteSize, SpriteSize);
+    }
     private (int row, int col) PixelToCell(int mouseX, int mouseY) {
         var (offsetX, offsetY) = GetBoardOffset();
         var reliableX = mouseX - offsetX;
@@ -33,10 +41,39 @@ public class Game1 : Game
     int offsetY = (GraphicsDevice.Viewport.Height - boardHeight) / 2;
     return (offsetX, offsetY);
     }
+    private static Color GemColorToTint(GemColor color) {
+        return color switch {
+            GemColor.Orange => Color.Orange,
+            GemColor.Blue => Color.Blue,
+            GemColor.Red => Color.Red,
+            GemColor.Green => Color.Green,
+            GemColor.Purple => Color.Purple,
+            _ => Color.Black
+        };
+    }
+    private static string GetRegionName(GemColor color, BonusType bonus) {
+        string colorPart = color  switch {
+            GemColor.Orange => "orange",
+            GemColor.Blue => "blue",
+            GemColor.Red => "red",
+            GemColor.Green => "green",
+            GemColor.Purple => "purple",
+            _ => "orange"
+        };
+        string bonusPart = bonus switch {
+            BonusType.LineH => "LineH",
+            BonusType.LineV => "LineV",
+            BonusType.Bomb => "Bomb",
+            _ => ""
+        };
+        return colorPart + bonusPart;
+    }
 
     public Game1()
     {
         _graphics = new GraphicsDeviceManager(this);
+        _graphics.PreferredBackBufferHeight = 720;
+        _graphics.PreferredBackBufferWidth = 960;
         Content.RootDirectory = "Content";
         IsMouseVisible = true;
         _board = new Board();
@@ -54,6 +91,38 @@ public class Game1 : Game
         _spriteBatch = new SpriteBatch(GraphicsDevice);
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] {Color.White});
+        Texture2D gemSheet = Content.Load<Texture2D>("assets_candy");
+        Texture2D background = Content.Load<Texture2D>("background_blur");
+        _backgroundBlur = new TextureRegion (
+            background,
+            0,
+            0,
+            background.Width,
+            background.Height
+        );
+        _gemAtlas = new TextureAtlas(gemSheet);
+        AddGem("orange", 0, 0);
+        AddGem("blue", 0, 1);
+        AddGem("red", 0, 2);
+        AddGem("green", 0, 3);
+        AddGem("purple", 0, 4);
+        AddGem("orangeLineH", 4, 0);
+        AddGem("blueLineH", 4, 0);
+        AddGem("redLineH", 4, 0);
+        AddGem("greenLineH", 4, 0);
+        AddGem("purpleLineH", 4, 0);
+         AddGem("orangeLineV", 4, 1);
+        AddGem("blueLineV", 4, 1);
+        AddGem("redLineV", 4, 1);
+        AddGem("greenLineV", 4, 1);
+        AddGem("purpleLineV", 4, 1);
+        AddGem("orangeBomb", 4, 2);
+        AddGem("blueBomb", 4, 2);
+        AddGem("redBomb", 4, 2);
+        AddGem("greenBomb", 4, 2);
+        AddGem("purpleBomb", 4, 2);
+
+        
 
 
         // TODO: use this.Content to load your game content here
@@ -92,26 +161,27 @@ public class Game1 : Game
         var (offsetX, offsetY) = GetBoardOffset();
         GraphicsDevice.Clear(Color.CornflowerBlue);
         _spriteBatch.Begin();
+        _backgroundBlur.Draw(
+            _spriteBatch,
+            GraphicsDevice.Viewport.Bounds,
+            Color.White
+        );
         for (int col=0; col < Board.Cols; col++) {
             for (int row=0; row < Board.Rows; row++) {
-                _spriteBatch.Draw(_pixel,new Rectangle( 
-                    offsetX + col * CellSize, 
-                    offsetY + row * CellSize, 
-                    CellSize - 4, 
-                    CellSize - 4), 
-                    GemToColor(_board.GetCell(row, col).Color));
+                Cell cell = _board.GetCell(row, col);
+                string name = GetRegionName(cell.Color, cell.Bonus);
+                TextureRegion region = _gemAtlas.GetRegion(name);
+                Rectangle dest = new Rectangle(
+                    offsetX + col * CellSize,
+                    offsetY + row * CellSize,
+                    CellSize - 4,
+                    CellSize - 4
+                    );
+                Color tint = cell.Bonus != BonusType.None ? GemColorToTint(cell.Color) : Color.White;
+                region.Draw(_spriteBatch, dest, tint);
             }
         }
         _spriteBatch.End();
         base.Draw(gameTime);
     }
-    private static Color GemToColor(GemColor gem) => gem switch
-{
-    GemColor.Red => Color.Red,
-    GemColor.Green => Color.Green,
-    GemColor.Blue => Color.Blue,
-    GemColor.Yellow => Color.Yellow,
-    GemColor.None => Color.DimGray,
-    _ => Color.Magenta
-};
 }
