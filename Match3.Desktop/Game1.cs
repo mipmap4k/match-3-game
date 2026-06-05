@@ -153,6 +153,7 @@ public class Game1 : Game
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
         _time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+        Window.Title = $"Match3 — Score: {_board.Score}";
         MouseState currentMouseState = Mouse.GetState();
         bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
          switch (_state) {

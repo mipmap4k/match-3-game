@@ -2,6 +2,7 @@ namespace Match3.Logic;
 public class Board {
     public const int Rows = 8;
     public const int Cols = 8;
+    public int Score { get; private set; } = 0;
     private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
     private Cell[,] gameBoard = new Cell[Cols,Rows];
     private (int row, int col)? lastMoveEnd = null;
@@ -13,6 +14,7 @@ public class Board {
             }
         }
         CycleTick();
+        Score = 0;
     }
     public Board(Cell[,] initBoard) {
         gameBoard = initBoard;
@@ -91,7 +93,7 @@ public class Board {
                 } else if (bonus != BonusType.None && (row, col) == bonusPos) {
                     gameBoard[row, col] = new Cell(match.Color, bonus);
                 } else {
-                    gameBoard[row, col] = new Cell(GemColor.None);
+                    RemoveCell(row, col);
                 }
             }
         }
@@ -122,6 +124,12 @@ public class Board {
             }
         }
     }
+    private void RemoveCell(int row, int col) {
+        if (gameBoard[row, col].Color != GemColor.None) {
+            Score += 10;
+        }
+        gameBoard[row, col] = new Cell(GemColor.None);
+    }
     private void TriggerBonus(int row, int col, BonusType bonus, Queue<(int row, int col, BonusType bonus)> bonusQueue) {
         switch(bonus) {
             case BonusType.LineH:
@@ -132,7 +140,7 @@ public class Board {
                             bonusQueue.Enqueue((row, c, existingBonus));
                         }
                     }
-                    gameBoard[row,c] = new Cell(GemColor.None);
+                    RemoveCell(row, c);;
                 } break;
             case BonusType.LineV:
                 for (int r=0; r < Rows; r++){
@@ -142,7 +150,7 @@ public class Board {
                             bonusQueue.Enqueue((r, col, existingBonus));
                         }
                     }
-                    gameBoard[r, col] = new Cell(GemColor.None);
+                    RemoveCell(r, col);
                 } break;
             case BonusType.Bomb:
                 for (int r = row - 1; r <= row + 1; r++) {
@@ -154,7 +162,7 @@ public class Board {
                                     bonusQueue.Enqueue((r, c, existing));
                                 }
                             }
-                            gameBoard[r,c] = new Cell(GemColor.None);
+                            RemoveCell(r, c);
                         }
                     }
                 } break;
