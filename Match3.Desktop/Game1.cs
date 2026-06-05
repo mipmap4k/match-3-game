@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System.Collections.Generic;
+using System;
 
 namespace Match3.Desktop;
 
@@ -14,13 +15,16 @@ public class Game1 : Game
     private Board _board;
     private Texture2D _pixel;
     private MouseState _previousMouseState;
-    private bool _hasSelection = false;
     private int _selectedRow;
     private int _selectedCol;
+    private float _time = 0f;
     private TextureAtlas _gemAtlas;
     private TextureRegion _backgroundBlur;
+    private GameState _state = GameState.Idle;
     private const int SpriteSize = 100;
     private const int CellSize = 64;
+  
+    private enum GameState {Idle, Selected, Resolving};
     private void GrayscaleRegion(Texture2D texture, int startX, int startY, int width, int height) {
         Color[] data = new Color[texture.Width * texture.Height];
         texture.GetData(data);
@@ -33,6 +37,9 @@ public class Game1 : Game
                 data[idx] = new Color(gray, gray, gray, c.A);
             }
         }
+        
+        texture.SetData(data);
+    }
     private void AddGem(string name, int row, int col) {
         _gemAtlas.AddRegion(name, col * SpriteSize, row * SpriteSize, SpriteSize, SpriteSize);
     }
@@ -145,25 +152,41 @@ public class Game1 : Game
     {
         if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed || Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
-
+        _time += (float)gameTime.ElapsedGameTime.TotalSeconds;
         MouseState currentMouseState = Mouse.GetState();
         bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
-         if (clicked) {
-            var (row, col) = PixelToCell(currentMouseState.X, currentMouseState.Y);
-            if (!_hasSelection) {
-                _selectedCol = col;
-                _selectedRow = row;
-                _hasSelection = true;
-            } else {
-                bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
-                if (tryMove) {
-                    _board.CycleTick();
-                } else {
-                    Window.Title = "Invalid ZOMBE";
-                }
-                _hasSelection = false;
-            }
-        }
+         switch (_state) {
+            case GameState.Idle:
+                if (clicked) {
+                    var (row, col) = PixelToCell(currentMouseState.X, currentMouseState.Y);
+                    if (row != -1) {
+                        _selectedRow = row;
+                        _selectedCol = col;
+                        _state = GameState.Selected;
+                    }
+                } break;
+            case GameState.Selected:
+                if (clicked) {
+                    var (row, col) = PixelToCell(currentMouseState.X, currentMouseState.Y);
+                        if (row != -1) {
+                            if (row == _selectedRow && col == _selectedCol) {
+                                _state = GameState.Idle;
+                            } else {
+                                bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
+                                if (tryMove) {
+                                    _state = GameState.Resolving;
+                                    _board.CycleTick();
+                                    _state = GameState.Idle;
+                                } else {
+                                    _state = GameState.Idle;
+                                    }
+                            }
+                        }
+                } break;
+            case GameState.Resolving:
+            // TODO
+            break;
+         }
         _previousMouseState = currentMouseState;
 
         base.Update(gameTime);
@@ -173,6 +196,8 @@ public class Game1 : Game
     {
         var (offsetX, offsetY) = GetBoardOffset();
         GraphicsDevice.Clear(Color.CornflowerBlue);
+        bool hasSelection = (_state == GameState.Selected);
+        float pulseScale = 1f + 0.1f * (float)Math.Cos(_time * 5);
         _spriteBatch.Begin();
         _backgroundBlur.Draw(
             _spriteBatch,
@@ -184,9 +209,13 @@ public class Game1 : Game
                 Cell cell = _board.GetCell(row, col);
                 string name = GetRegionName(cell.Color, cell.Bonus);
                 TextureRegion region = _gemAtlas.GetRegion(name);
+                float scale = (hasSelection && row == _selectedRow && col == _selectedCol) ? pulseScale : 1f;
+                int scaledSize = (int)(CellSize * scale);
+                int centerX = offsetX + col * CellSize + CellSize / 2;
+                int centerY = offsetY + row * CellSize + CellSize / 2;
                 Rectangle dest = new Rectangle(
-                    offsetX + col * CellSize,
-                    offsetY + row * CellSize,
+                    centerX - scaledSize / 2,
+                    centerY - scaledSize / 2,
                     CellSize - 4,
                     CellSize - 4
                     );
