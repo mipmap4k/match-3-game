@@ -22,12 +22,15 @@ public class Game1 : Game
     private TextureRegion _backgroundBlur;
     private Animation _explosionAnimation = null!;
     private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
+    private List<(int row, int col, Cell cell, PositionTween tween)> _movingCells = new();
+    private bool _pendingCycle = false;
     private GameState _state = GameState.Idle;
     private const int SpriteSize = 100;
     private const int CellSize = 64;
     private const int ExplosionFrameSize = 100;
     private const int ExplosionFrameCount = 4;
     private const bool ExplosionFramesHorizontal = true;
+    private const float SwapDuration = 0.25f;
   
     private enum GameState {Idle, Selected, Resolving};
     private void GrayscaleRegion(Texture2D texture, int startX, int startY, int width, int height) {
@@ -116,6 +119,19 @@ public class Game1 : Game
             }
         }
         _board.LastTickEvents.Clear();
+    }
+
+    private void StartSwapAnimation(int rowA, int colA, int rowB, int colB, Cell cellA, Cell cellB) {
+        var (offsetX, offsetY) = GetBoardOffset();
+        Vector2 posA = CellToPixel(rowA, colA, offsetX, offsetY);
+        Vector2 posB = CellToPixel(rowB, colB, offsetX, offsetY);
+
+        _movingCells.Add((rowB, colB, cellA, new PositionTween(posA, posB, SwapDuration)));
+        _movingCells.Add((rowA, colA, cellB, new PositionTween(posB, posA, SwapDuration)));
+    }
+
+    private Vector2 CellToPixel(int row, int col, int offsetX, int offsetY) {
+        return new Vector2(offsetX + col * CellSize, offsetY + row * CellSize);
     }
 
     private void AddExplosion(int row, int col, float delay) {
@@ -212,7 +228,18 @@ public class Game1 : Game
                 }
             }
         }
-
+        for (int i = _movingCells.Count - 1; i >= 0; i--) {
+            _movingCells[i].tween.Update(gameTime);
+            if (_movingCells[i].tween.IsFinished) {
+                _movingCells.RemoveAt(i);
+            }
+        }
+        if (_pendingCycle && _movingCells.Count == 0) {
+            _board.CycleTick();
+            SpawnAnimationsFromEvents();
+            _pendingCycle = false;
+            _state = GameState.Idle;
+            }
         MouseState currentMouseState = Mouse.GetState();
         bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
          switch (_state) {
@@ -232,12 +259,13 @@ public class Game1 : Game
                             if (row == _selectedRow && col == _selectedCol) {
                                 _state = GameState.Idle;
                             } else {
+                                var cellA = _board.GetCell(_selectedRow, _selectedCol);
+                                var cellB = _board.GetCell(row, col);
                                 bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
                                 if (tryMove) {
                                     _state = GameState.Resolving;
-                                    _board.CycleTick();
-                                    SpawnAnimationsFromEvents();
-                                    _state = GameState.Idle;
+                                    StartSwapAnimation(_selectedRow, _selectedCol, row, col, cellA, cellB);
+                                    _pendingCycle = true;
                                 } else {
                                     _state = GameState.Idle;
                                     }
@@ -264,8 +292,16 @@ public class Game1 : Game
             GraphicsDevice.Viewport.Bounds,
             Color.White
         );
+
+        var animatingCells = new HashSet<(int, int)>();
+        foreach (var (r, c, _, _) in _movingCells) {
+            animatingCells.Add((r, c));
+        }
+
         for (int col=0; col < Board.Cols; col++) {
             for (int row=0; row < Board.Rows; row++) {
+                if (animatingCells.Contains((row, col))) continue;
+
                 Cell cell = _board.GetCell(row, col);
                 string name = GetRegionName(cell.Color, cell.Bonus);
                 TextureRegion region = _gemAtlas.GetRegion(name);
@@ -282,6 +318,17 @@ public class Game1 : Game
                 Color tint = cell.Bonus != BonusType.None ? GemColorToTint(cell.Color) : Color.White;
                 region.Draw(_spriteBatch, dest, tint);
             }
+        }
+        foreach (var (_, _, cell, tween) in _movingCells) {
+            string name = GetRegionName(cell.Color, cell.Bonus);
+            TextureRegion region = _gemAtlas.GetRegion(name);
+            Vector2 pos = tween.Current;
+            Rectangle dest = new Rectangle(
+                (int)pos.X, (int)pos.Y,
+                CellSize - 4, CellSize - 4
+            );
+            Color tint = cell.Bonus != BonusType.None ? GemColorToTint(cell.Color) : Color.White;
+            region.Draw(_spriteBatch, dest, tint);
         }
         foreach (var (sprite, position, delay) in _activeAnimations) {
             if (delay <= 0f) {
