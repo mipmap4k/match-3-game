@@ -92,6 +92,43 @@ public class Game1 : Game
         };
         return colorPart + bonusPart;
     }
+    private void SpawnAnimationsFromEvents() {
+        foreach (var (row, col, bonus) in _board.LastTickEvents) {
+            switch (bonus) {
+                case BonusType.Bomb:
+                    for (int r = row - 1; r <= row + 1; r++) {
+                        for (int c = col - 1; c <= col + 1; c++) {
+                            if (r >= 0 && r < Board.Rows && c >= 0 && c < Board.Cols) {
+                                AddExplosion(r, c, delay: 0f);
+                            }
+                        }
+                    } break;
+                case BonusType.LineH:
+                    for (int c = 0; c < Board.Cols; c++) {
+                        float delay = Math.Abs(c - col) * 0.07f; 
+                        AddExplosion(row, c, delay);
+                    } break;
+                case BonusType.LineV:
+                    for (int r = 0; r < Board.Rows; r++) {
+                        float delay = Math.Abs(r - row) * 0.07f;
+                        AddExplosion(r, col, delay);
+                    } break;
+            }
+        }
+        _board.LastTickEvents.Clear();
+    }
+
+    private void AddExplosion(int row, int col, float delay) {
+        var (offsetX, offsetY) = GetBoardOffset();
+        var sprite = new AnimatedSprite(_explosionAnimation) { Loop = false };
+        sprite.CenterOrigin();
+        var position = new Vector2(
+            offsetX + col * CellSize + CellSize / 2,
+            offsetY + row * CellSize + CellSize / 2
+        );
+        _activeAnimations.Add((sprite, position, delay));
+    }
+
 
     public Game1()
     {
@@ -215,49 +252,6 @@ public class Game1 : Game
 
         base.Update(gameTime);
     }
-
-    private void SpawnAnimationsFromEvents() {
-        foreach (var (row, col, bonus) in _board.LastTickEvents) {
-            switch (bonus) {
-                case BonusType.Bomb:
-                    for (int r = row - 1; r <= row + 1; r++) {
-                        for (int c = col - 1; c <= col + 1; c++) {
-                            if (r >= 0 && r < Board.Rows && c >= 0 && c < Board.Cols) {
-                                AddExplosion(r, c, delay: 0f);
-                            }
-                        }
-                    }
-                    break;
-
-                case BonusType.LineH:
-                    for (int c = 0; c < Board.Cols; c++) {
-                        float delay = Math.Abs(c - col) * 0.07f; 
-                        AddExplosion(row, c, delay);
-                    }
-                    break;
-
-                case BonusType.LineV:
-                    for (int r = 0; r < Board.Rows; r++) {
-                        float delay = Math.Abs(r - row) * 0.07f;
-                        AddExplosion(r, col, delay);
-                    }
-                    break;
-            }
-        }
-        _board.LastTickEvents.Clear();
-    }
-
-    private void AddExplosion(int row, int col, float delay) {
-        var (offsetX, offsetY) = GetBoardOffset();
-        var sprite = new AnimatedSprite(_explosionAnimation) { Loop = false };
-        sprite.CenterOrigin();
-        var position = new Vector2(
-            offsetX + col * CellSize + CellSize / 2,
-            offsetY + row * CellSize + CellSize / 2
-        );
-        _activeAnimations.Add((sprite, position, delay));
-    }
-
     protected override void Draw(GameTime gameTime)
     {
         var (offsetX, offsetY) = GetBoardOffset();
