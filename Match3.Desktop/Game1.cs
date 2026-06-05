@@ -20,9 +20,14 @@ public class Game1 : Game
     private float _time = 0f;
     private TextureAtlas _gemAtlas;
     private TextureRegion _backgroundBlur;
+    private Animation _explosionAnimation = null!;
+    private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
     private GameState _state = GameState.Idle;
     private const int SpriteSize = 100;
     private const int CellSize = 64;
+    private const int ExplosionFrameSize = 100;
+    private const int ExplosionFrameCount = 4;
+    private const bool ExplosionFramesHorizontal = true;
   
     private enum GameState {Idle, Selected, Resolving};
     private void GrayscaleRegion(Texture2D texture, int startX, int startY, int width, int height) {
@@ -141,11 +146,14 @@ public class Game1 : Game
         AddGem("redBomb", 4, 2);
         AddGem("greenBomb", 4, 2);
         AddGem("purpleBomb", 4, 2);
-
-        
-
-
-        // TODO: use this.Content to load your game content here
+        Texture2D explosionSheet = Content.Load<Texture2D>("explotion");
+        var explosionFrames = new List<TextureRegion>();
+        for (int i = 0; i < ExplosionFrameCount; i++) {
+            int x = ExplosionFramesHorizontal ? i * ExplosionFrameSize : 0;
+            int y = ExplosionFramesHorizontal ? 0 : i * ExplosionFrameSize;
+            explosionFrames.Add(new TextureRegion(explosionSheet, x, y, ExplosionFrameSize, ExplosionFrameSize));
+        }
+        _explosionAnimation = new Animation(explosionFrames, TimeSpan.FromMilliseconds(150));
     }
 
     protected override void Update(GameTime gameTime)
@@ -154,6 +162,20 @@ public class Game1 : Game
             Exit();
         _time += (float)gameTime.ElapsedGameTime.TotalSeconds;
         Window.Title = $"Match3 — Score: {_board.Score}";
+        for (int i = _activeAnimations.Count - 1; i >= 0; i--) {
+            var (sprite, pos, delay) = _activeAnimations[i];
+            float deltaSec = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            if (delay > 0f) {
+                delay -= deltaSec;
+                _activeAnimations[i] = (sprite, pos, delay);
+            } else {
+                sprite.Update(gameTime);
+                if (sprite.IsFinished) {
+                    _activeAnimations.RemoveAt(i);
+                }
+            }
+        }
+
         MouseState currentMouseState = Mouse.GetState();
         bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
          switch (_state) {
@@ -177,6 +199,7 @@ public class Game1 : Game
                                 if (tryMove) {
                                     _state = GameState.Resolving;
                                     _board.CycleTick();
+                                    SpawnAnimationsFromEvents();
                                     _state = GameState.Idle;
                                 } else {
                                     _state = GameState.Idle;
@@ -191,6 +214,48 @@ public class Game1 : Game
         _previousMouseState = currentMouseState;
 
         base.Update(gameTime);
+    }
+
+    private void SpawnAnimationsFromEvents() {
+        foreach (var (row, col, bonus) in _board.LastTickEvents) {
+            switch (bonus) {
+                case BonusType.Bomb:
+                    for (int r = row - 1; r <= row + 1; r++) {
+                        for (int c = col - 1; c <= col + 1; c++) {
+                            if (r >= 0 && r < Board.Rows && c >= 0 && c < Board.Cols) {
+                                AddExplosion(r, c, delay: 0f);
+                            }
+                        }
+                    }
+                    break;
+
+                case BonusType.LineH:
+                    for (int c = 0; c < Board.Cols; c++) {
+                        float delay = Math.Abs(c - col) * 0.07f; 
+                        AddExplosion(row, c, delay);
+                    }
+                    break;
+
+                case BonusType.LineV:
+                    for (int r = 0; r < Board.Rows; r++) {
+                        float delay = Math.Abs(r - row) * 0.07f;
+                        AddExplosion(r, col, delay);
+                    }
+                    break;
+            }
+        }
+        _board.LastTickEvents.Clear();
+    }
+
+    private void AddExplosion(int row, int col, float delay) {
+        var (offsetX, offsetY) = GetBoardOffset();
+        var sprite = new AnimatedSprite(_explosionAnimation) { Loop = false };
+        sprite.CenterOrigin();
+        var position = new Vector2(
+            offsetX + col * CellSize + CellSize / 2,
+            offsetY + row * CellSize + CellSize / 2
+        );
+        _activeAnimations.Add((sprite, position, delay));
     }
 
     protected override void Draw(GameTime gameTime)
@@ -222,6 +287,11 @@ public class Game1 : Game
                     );
                 Color tint = cell.Bonus != BonusType.None ? GemColorToTint(cell.Color) : Color.White;
                 region.Draw(_spriteBatch, dest, tint);
+            }
+        }
+        foreach (var (sprite, position, delay) in _activeAnimations) {
+            if (delay <= 0f) {
+                sprite.Draw(_spriteBatch, position);
             }
         }
         _spriteBatch.End();

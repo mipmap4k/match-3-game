@@ -3,6 +3,7 @@ public class Board {
     public const int Rows = 8;
     public const int Cols = 8;
     public int Score { get; private set; } = 0;
+    public List<(int row, int col, BonusType bonus)> LastTickEvents { get; } = new();
     private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
     private Cell[,] gameBoard = new Cell[Cols,Rows];
     private (int row, int col)? lastMoveEnd = null;
@@ -131,6 +132,7 @@ public class Board {
         gameBoard[row, col] = new Cell(GemColor.None);
     }
     private void TriggerBonus(int row, int col, BonusType bonus, Queue<(int row, int col, BonusType bonus)> bonusQueue) {
+        LastTickEvents.Add((row, col, bonus));
         switch(bonus) {
             case BonusType.LineH:
                 for (int c=0; c < Cols; c++) {
