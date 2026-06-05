@@ -21,6 +21,18 @@ public class Game1 : Game
     private TextureRegion _backgroundBlur;
     private const int SpriteSize = 100;
     private const int CellSize = 64;
+    private void GrayscaleRegion(Texture2D texture, int startX, int startY, int width, int height) {
+        Color[] data = new Color[texture.Width * texture.Height];
+        texture.GetData(data);
+        
+        for (int y = startY; y < startY + height; y++) {
+            for (int x = startX; x < startX + width; x++) {
+                int idx = y * texture.Width + x;
+                Color c = data[idx];
+                byte gray = (byte)(c.R + c.G + c.B);
+                data[idx] = new Color(gray, gray, gray, c.A);
+            }
+        }
     private void AddGem(string name, int row, int col) {
         _gemAtlas.AddRegion(name, col * SpriteSize, row * SpriteSize, SpriteSize, SpriteSize);
     }
@@ -92,6 +104,7 @@ public class Game1 : Game
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] {Color.White});
         Texture2D gemSheet = Content.Load<Texture2D>("assets_candy");
+        GrayscaleRegion(gemSheet, 0, 4 * SpriteSize, 5 * SpriteSize, 3 * SpriteSize);
         Texture2D background = Content.Load<Texture2D>("background_blur");
         _backgroundBlur = new TextureRegion (
             background,
