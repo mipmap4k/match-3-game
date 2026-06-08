@@ -22,7 +22,7 @@ public class Game1 : Game
     private TextureRegion _backgroundBlur;
     private Animation _explosionAnimation = null!;
     private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
-    private List<(int row, int col, Cell cell, PositionTween tween)> _movingCells = new();
+    private List<(int row, int col, Cell cell, PositionTween tween, bool needReverse)> _movingCells = new();
     private bool _pendingCycle = false;
     private GameState _state = GameState.Idle;
     private const int SpriteSize = 100;
@@ -121,13 +121,13 @@ public class Game1 : Game
         _board.LastTickEvents.Clear();
     }
 
-    private void StartSwapAnimation(int rowA, int colA, int rowB, int colB, Cell cellA, Cell cellB) {
+    private void StartSwapAnimation(int rowA, int colA, int rowB, int colB, Cell cellA, Cell cellB, bool reverse = false) {
         var (offsetX, offsetY) = GetBoardOffset();
         Vector2 posA = CellToPixel(rowA, colA, offsetX, offsetY);
         Vector2 posB = CellToPixel(rowB, colB, offsetX, offsetY);
 
-        _movingCells.Add((rowB, colB, cellA, new PositionTween(posA, posB, SwapDuration)));
-        _movingCells.Add((rowA, colA, cellB, new PositionTween(posB, posA, SwapDuration)));
+        _movingCells.Add((rowB, colB, cellA, new PositionTween(posA, posB, SwapDuration), reverse));
+        _movingCells.Add((rowA, colA, cellB, new PositionTween(posB, posA, SwapDuration), reverse));
     }
 
     private Vector2 CellToPixel(int row, int col, int offsetX, int offsetY) {
@@ -229,9 +229,15 @@ public class Game1 : Game
             }
         }
         for (int i = _movingCells.Count - 1; i >= 0; i--) {
-            _movingCells[i].tween.Update(gameTime);
-            if (_movingCells[i].tween.IsFinished) {
-                _movingCells.RemoveAt(i);
+            var (row, col, cell, tween, needReverse) = _movingCells[i];
+            tween.Update(gameTime);
+            if (tween.IsFinished) {
+                if (needReverse) {
+                    var backward = new PositionTween(tween.End, tween.Start, SwapDuration);
+                    _movingCells[i] = (row, col, cell, backward, false);
+                } else {
+                    _movingCells.RemoveAt(i);
+                }
             }
         }
         if (_pendingCycle && _movingCells.Count == 0) {
@@ -239,7 +245,10 @@ public class Game1 : Game
             SpawnAnimationsFromEvents();
             _pendingCycle = false;
             _state = GameState.Idle;
-            }
+        }
+        if (!_pendingCycle && _movingCells.Count == 0 && _state == GameState.Resolving) {
+            _state = GameState.Idle;
+        }
         MouseState currentMouseState = Mouse.GetState();
         bool clicked = currentMouseState.LeftButton == ButtonState.Pressed && _previousMouseState.LeftButton == ButtonState.Released;
          switch (_state) {
@@ -259,16 +268,21 @@ public class Game1 : Game
                             if (row == _selectedRow && col == _selectedCol) {
                                 _state = GameState.Idle;
                             } else {
-                                var cellA = _board.GetCell(_selectedRow, _selectedCol);
-                                var cellB = _board.GetCell(row, col);
-                                bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
-                                if (tryMove) {
-                                    _state = GameState.Resolving;
-                                    StartSwapAnimation(_selectedRow, _selectedCol, row, col, cellA, cellB);
-                                    _pendingCycle = true;
-                                } else {
+                                if (!Board.AreNeighbors(_selectedRow, _selectedCol, row, col)) {
                                     _state = GameState.Idle;
+                                } else {
+                                    var cellA = _board.GetCell(_selectedRow, _selectedCol);
+                                    var cellB = _board.GetCell(row, col);
+                                    bool tryMove = _board.TryMakeMove(_selectedRow, _selectedCol, row, col);
+                                    if (tryMove) {
+                                        _state = GameState.Resolving;
+                                        StartSwapAnimation(_selectedRow, _selectedCol, row, col, cellA, cellB);
+                                        _pendingCycle = true;
+                                    } else {
+                                        _state = GameState.Resolving;
+                                        StartSwapAnimation(_selectedRow, _selectedCol, row, col, cellA, cellB, reverse: true);
                                     }
+                                }
                             }
                         }
                 } break;
@@ -294,7 +308,7 @@ public class Game1 : Game
         );
 
         var animatingCells = new HashSet<(int, int)>();
-        foreach (var (r, c, _, _) in _movingCells) {
+        foreach (var (r, c, _, _, _) in _movingCells) {
             animatingCells.Add((r, c));
         }
 
@@ -319,7 +333,7 @@ public class Game1 : Game
                 region.Draw(_spriteBatch, dest, tint);
             }
         }
-        foreach (var (_, _, cell, tween) in _movingCells) {
+        foreach (var (_, _, cell, tween, _) in _movingCells) {
             string name = GetRegionName(cell.Color, cell.Bonus);
             TextureRegion region = _gemAtlas.GetRegion(name);
             Vector2 pos = tween.Current;

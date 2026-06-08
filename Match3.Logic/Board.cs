@@ -37,9 +37,11 @@ public class Board {
             SpawnNewGem();
         }
     }
+    public static bool AreNeighbors(int startRow, int startCol, int endRow, int endCol) {
+        return (startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1);
+    }
     public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
-        bool areNeighbor = (startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1);
-        if (!areNeighbor) return false; 
+        if (!AreNeighbors(startRow, startCol, endRow, endCol)) return false; 
         Swap(startRow, startCol, endRow, endCol);
         if (!HasMatches()) {
             Swap(startRow, startCol, endRow, endCol);
