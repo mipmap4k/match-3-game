@@ -6,17 +6,20 @@ namespace Match3.Desktop.Scenes;
 
 public class MainMenuScene : Scene {
     private Texture2D _pixel = null!;
+    private SpriteFont _font = null!;
     private Rectangle _playButton;
     private MouseState _previousMouseState;
 
     private const int ButtonWidth = 240;
     private const int ButtonHeight = 90;
+    private const string ButtonText = "Start";
 
     public MainMenuScene(Game1 game) : base(game) { }
 
     public override void LoadContent() {
         _pixel = new Texture2D(Game.GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
+        _font = Game.Content.Load<SpriteFont>("File");
 
         int viewportW = Game.GraphicsDevice.Viewport.Width;
         int viewportH = Game.GraphicsDevice.Viewport.Height;
@@ -52,5 +55,12 @@ public class MainMenuScene : Scene {
         );
         spriteBatch.Draw(_pixel, border, Color.White);
         spriteBatch.Draw(_pixel, _playButton, buttonColor);
+
+        Vector2 textSize = _font.MeasureString(ButtonText);
+        Vector2 textPos = new Vector2(
+            _playButton.X + (_playButton.Width - textSize.X) / 2,
+            _playButton.Y + (_playButton.Height - textSize.Y) / 2
+        );
+        spriteBatch.DrawString(_font, ButtonText, textPos, Color.White);
     }
 }
