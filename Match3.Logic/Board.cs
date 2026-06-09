@@ -3,7 +3,9 @@ public class Board {
     public const int Rows = 8;
     public const int Cols = 8;
     public int Score { get; private set; } = 0;
-    public List<(int row, int col, BonusType bonus)> LastTickEvents { get; } = new();
+    public List<(int row, int col, BonusType bonus, GemColor color)> LastTickEvents { get; } = new();
+    public List<(int row, int col, BonusType bonus, GemColor color, Cell wasCell)> CreatedBonuses { get; } = new();
+    public List<(int row, int col, Cell wasCell)> RemovedCells { get; } = new();
     private static int GemColorsCount => Enum.GetValues<GemColor>().Length - 1;
     private Cell[,] gameBoard = new Cell[Cols,Rows];
     private (int row, int col)? lastMoveEnd = null;
@@ -22,23 +24,32 @@ public class Board {
     }
     public void CycleTick() {
         while (true) {
-            var matches = FindAllMatches();
-            if (matches.Count == 0) {
-                break;
-            }
-            var bombPositions = FindIntersections(matches);
-            var bonusQueue = new Queue<(int row, int col, BonusType bonus)>();
-            RemoveMatches(matches, bombPositions, bonusQueue);
-            while (bonusQueue.Count > 0) {
-                var (row, col, bonus) = bonusQueue.Dequeue();
-                TriggerBonus(row, col, bonus, bonusQueue);
-            }
-            ApplyGravity();
-            SpawnNewGem();
+            if (!TryRemoveStep()) break;
+            ApplyGravityAndSpawn();
         }
+    }
+    public bool TryRemoveStep() {
+        LastTickEvents.Clear();
+        CreatedBonuses.Clear();
+        RemovedCells.Clear();
+
+        var matches = FindAllMatches();
+        if (matches.Count == 0) return false;
+        var bombPositions = FindIntersections(matches);
+        var bonusQueue = new Queue<(int row, int col, BonusType bonus, GemColor color)>();
+        RemoveMatches(matches, bombPositions, bonusQueue);
+        while (bonusQueue.Count > 0) {
+            var (row, col, bonus, color) = bonusQueue.Dequeue();
+            TriggerBonus(row, col, bonus, color, bonusQueue);
+        }
+        return true;
     }
     public static bool AreNeighbors(int startRow, int startCol, int endRow, int endCol) {
         return (startRow == endRow && Math.Abs(startCol - endCol) == 1) || (startCol == endCol && Math.Abs(startRow - endRow) == 1);
+    }
+    public void ApplyGravityAndSpawn() {
+        ApplyGravity();
+        SpawnNewGem();
     }
     public bool TryMakeMove(int startRow, int startCol, int endRow, int endCol) {
         if (!AreNeighbors(startRow, startCol, endRow, endCol)) return false; 
@@ -65,13 +76,13 @@ public class Board {
     private void RemoveMatches(
         List<Match> matches,
         HashSet<(int, int)> bombPositions,
-        Queue<(int row, int col, BonusType bonus)> bonusQueue
+        Queue<(int row, int col, BonusType bonus, GemColor color)> bonusQueue
          ) {
         foreach (var match in matches) {
             foreach (var (row, col) in match.Cells) {
                 BonusType currBonus = gameBoard[row, col].Bonus;
                 if (currBonus != BonusType.None) {
-                    bonusQueue.Enqueue((row, col, currBonus));
+                    bonusQueue.Enqueue((row, col, currBonus, gameBoard[row, col].Color));
                 }
             }
         }
@@ -92,9 +103,19 @@ public class Board {
             }
             foreach (var (row,col) in match.Cells) {
                 if (bombPositions.Contains((row, col))) {
-                    gameBoard[row, col] = new Cell(match.Color, BonusType.Bomb);
+                    Cell wasCell = gameBoard[row, col];
+                    if (gameBoard[row, col].Bonus != BonusType.Bomb || gameBoard[row, col].Color != match.Color) {
+                        gameBoard[row, col] = new Cell(match.Color, BonusType.Bomb);
+                        if (!CreatedBonusesContains(row, col)) {
+                            CreatedBonuses.Add((row, col, BonusType.Bomb, match.Color, wasCell));
+                        }
+                    }
                 } else if (bonus != BonusType.None && (row, col) == bonusPos) {
+                    Cell wasCell = gameBoard[row, col];
                     gameBoard[row, col] = new Cell(match.Color, bonus);
+                    if (!CreatedBonusesContains(row, col)) {
+                        CreatedBonuses.Add((row, col, bonus, match.Color, wasCell));
+                    }
                 } else {
                     RemoveCell(row, col);
                 }
@@ -127,31 +148,40 @@ public class Board {
             }
         }
     }
+    private bool CreatedBonusesContains(int row, int col) {
+        foreach (var (r, c, _, _, _) in CreatedBonuses) {
+            if (r == row && c == col) return true;
+        }
+        return false;
+    }
+
     private void RemoveCell(int row, int col) {
-        if (gameBoard[row, col].Color != GemColor.None) {
+        Cell wasCell = gameBoard[row, col];
+        if (wasCell.Color != GemColor.None) {
             Score += 10;
+            RemovedCells.Add((row, col, wasCell));
         }
         gameBoard[row, col] = new Cell(GemColor.None);
     }
-    private void TriggerBonus(int row, int col, BonusType bonus, Queue<(int row, int col, BonusType bonus)> bonusQueue) {
-        LastTickEvents.Add((row, col, bonus));
+    private void TriggerBonus(int row, int col, BonusType bonus, GemColor bonusColor, Queue<(int row, int col, BonusType bonus, GemColor color)> bonusQueue) {
+        LastTickEvents.Add((row, col, bonus, bonusColor));
         switch(bonus) {
             case BonusType.LineH:
                 for (int c=0; c < Cols; c++) {
                     if (c != col) {
                         BonusType existingBonus = gameBoard[row, c].Bonus;
                         if (existingBonus != BonusType.None) {
-                            bonusQueue.Enqueue((row, c, existingBonus));
+                            bonusQueue.Enqueue((row, c, existingBonus, gameBoard[row, c].Color));
                         }
                     }
-                    RemoveCell(row, c);;
+                    RemoveCell(row, c);
                 } break;
             case BonusType.LineV:
                 for (int r=0; r < Rows; r++){
                     if (r != row) {
                         BonusType existingBonus = gameBoard[r, col].Bonus;
                         if (existingBonus != BonusType.None) {
-                            bonusQueue.Enqueue((r, col, existingBonus));
+                            bonusQueue.Enqueue((r, col, existingBonus, gameBoard[r, col].Color));
                         }
                     }
                     RemoveCell(r, col);
@@ -163,14 +193,13 @@ public class Board {
                             if (r != row || c != col) {
                                 BonusType existing = gameBoard[r,c].Bonus;
                                 if (existing != BonusType.None) {
-                                    bonusQueue.Enqueue((r, c, existing));
+                                    bonusQueue.Enqueue((r, c, existing, gameBoard[r, c].Color));
                                 }
                             }
                             RemoveCell(r, c);
                         }
                     }
                 } break;
-                
         }
     }
     private HashSet<(int, int)> FindIntersections(List<Match> matches) {
