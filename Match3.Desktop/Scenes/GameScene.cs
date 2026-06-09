@@ -20,6 +20,7 @@ public class GameScene : Scene
     private Animation _explosionAnimation = null!;
     private SpriteFont _font = null!;
     private Vector2 _scorePos;
+    private float _timeLeft = 60f;
     private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
     private List<(int row, int col, Cell cell, PositionTween tween, bool needReverse)> _movingCells = new();
     private List<(int row, int col, Cell wasCell, FloatTween fade)> _fadingCells = new();
@@ -337,7 +338,13 @@ public class GameScene : Scene
 
     public override void Update(GameTime gameTime)
     {
-        _time += (float)gameTime.ElapsedGameTime.TotalSeconds;
+        float deltaSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
+        _time += deltaSeconds;
+        _timeLeft -= deltaSeconds;
+        if (_timeLeft <= 0f && _state == GameState.Idle) {
+            Game.SetScene(new GameOverScene(Game, _board.Score));
+            return;
+        }
         Game.Window.Title = $"Match3 — Score: {_board.Score}";
         for (int i = _activeAnimations.Count - 1; i >= 0; i--) {
             var (sprite, pos, delay) = _activeAnimations[i];
@@ -563,6 +570,9 @@ public class GameScene : Scene
             region.Draw(spriteBatch, dest, tint);
         }
 
-        spriteBatch.DrawString(_font, $"Score: {_board.Score}", _scorePos, Color.Yellow);
+        spriteBatch.DrawString(_font, $"Score: {_board.Score}", _scorePos, Color.Black);
+
+        int secondsLeft = Math.Max(0, (int)Math.Ceiling(_timeLeft));
+        spriteBatch.DrawString(_font, $"Time: {secondsLeft}", new Vector2(20, 20), Color.Black);
     }
 }
