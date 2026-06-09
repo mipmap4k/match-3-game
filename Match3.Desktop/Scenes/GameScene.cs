@@ -18,6 +18,8 @@ public class GameScene : Scene
     private TextureAtlas _gemAtlas = null!;
     private TextureRegion _backgroundBlur = null!;
     private Animation _explosionAnimation = null!;
+    private SpriteFont _font = null!;
+    private Vector2 _scorePos;
     private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
     private List<(int row, int col, Cell cell, PositionTween tween, bool needReverse)> _movingCells = new();
     private List<(int row, int col, Cell wasCell, FloatTween fade)> _fadingCells = new();
@@ -325,6 +327,11 @@ public class GameScene : Scene
             explosionFrames.Add(new TextureRegion(explosionSheet, x, y, ExplosionFrameSize, ExplosionFrameSize));
         }
         _explosionAnimation = new Animation(explosionFrames, TimeSpan.FromMilliseconds(150));
+        _font = Game.Content.Load<SpriteFont>("File");
+
+        Vector2 maxScoreSize = _font.MeasureString("Score: 9999");
+        _scorePos = new Vector2(Game.GraphicsDevice.Viewport.Width - maxScoreSize.X, 20);
+
         _previousMouseState = Mouse.GetState();
     }
 
@@ -555,5 +562,7 @@ public class GameScene : Scene
             Color tint = GemColorToTint(spriteCell.Color);
             region.Draw(spriteBatch, dest, tint);
         }
+
+        spriteBatch.DrawString(_font, $"Score: {_board.Score}", _scorePos, Color.Yellow);
     }
 }
