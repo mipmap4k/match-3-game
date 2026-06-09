@@ -1,8 +1,10 @@
 using Match3.Logic;
 using Match3.Graphics;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using System.Collections.Generic;
 using System;
 
@@ -21,6 +23,10 @@ public class GameScene : Scene
     private SpriteFont _font = null!;
     private Vector2 _scorePos;
     private float _timeLeft = 60f;
+    private SoundEffect _popSound = null!;
+    private SoundEffect _explosionSound = null!;
+    private SoundEffect _laserSound = null!;
+    private Song _music = null!;
     private List<(AnimatedSprite sprite, Vector2 position, float delay)> _activeAnimations = new();
     private List<(int row, int col, Cell cell, PositionTween tween, bool needReverse)> _movingCells = new();
     private List<(int row, int col, Cell wasCell, FloatTween fade)> _fadingCells = new();
@@ -30,6 +36,7 @@ public class GameScene : Scene
     private const float FadeDuration = 0.25f;
     private const float AppearDuration = 0.35f;
     private const float LineWaveDelay = 0.07f;
+    private const float BombExplodeDelay = 0.25f;
     private GameState _state = GameState.Idle;
     private const int SpriteSize = 100;
     private const int CellSize = 64;
@@ -117,14 +124,18 @@ public class GameScene : Scene
         foreach (var (row, col, bonus, color) in _board.LastTickEvents) {
             switch (bonus) {
                 case BonusType.Bomb:
+                    _explosionSound.Play(volume: 0.5f, pitch: 0f, pan: 0f);
+                    AddExplosion(row, col, delay: 0f);
                     for (int r = row - 1; r <= row + 1; r++) {
                         for (int c = col - 1; c <= col + 1; c++) {
+                            if (r == row && c == col) continue;
                             if (r >= 0 && r < Board.Rows && c >= 0 && c < Board.Cols) {
-                                AddExplosion(r, c, delay: 0f);
+                                AddExplosion(r, c, delay: BombExplodeDelay);
                             }
                         }
                     } break;
                 case BonusType.LineH:
+                    _laserSound.Play(volume: 0.5f, pitch: 0f, pan: 0f);
                     for (int c = 0; c < Board.Cols; c++) {
                         float delay = Math.Abs(c - col) * LineWaveDelay;
                         AddExplosion(row, c, delay);
@@ -132,6 +143,7 @@ public class GameScene : Scene
                     AddFlyingDestroyer(row, col, BonusType.LineH, color);
                     break;
                 case BonusType.LineV:
+                    _laserSound.Play(volume: 0.5f, pitch: 0f, pan: 0f);
                     for (int r = 0; r < Board.Rows; r++) {
                         float delay = Math.Abs(r - row) * LineWaveDelay;
                         AddExplosion(r, col, delay);
@@ -189,6 +201,7 @@ public class GameScene : Scene
             _state = GameState.Idle;
             return;
         }
+        _popSound.Play(volume: 0.5f, pitch: 0f, pan: 0f);
         StartFadeForRemovedCells();
         StartAppearForCreatedBonuses();
         SpawnAnimationsFromEvents();
@@ -215,7 +228,7 @@ public class GameScene : Scene
         foreach (var (br, bc, bonus, _) in _board.LastTickEvents) {
             float? d = null;
             if (bonus == BonusType.Bomb && Math.Abs(row - br) <= 1 && Math.Abs(col - bc) <= 1) {
-                d = 0f;
+                d = (row == br && col == bc) ? 0f : BombExplodeDelay;
             } else if (bonus == BonusType.LineH && row == br) {
                 d = Math.Abs(col - bc) * LineWaveDelay;
             } else if (bonus == BonusType.LineV && col == bc) {
@@ -332,6 +345,14 @@ public class GameScene : Scene
 
         Vector2 maxScoreSize = _font.MeasureString("Score: 9999");
         _scorePos = new Vector2(Game.GraphicsDevice.Viewport.Width - maxScoreSize.X, 20);
+
+        _popSound = Game.Content.Load<SoundEffect>("pop");
+        _explosionSound = Game.Content.Load<SoundEffect>("explosion");
+        _laserSound = Game.Content.Load<SoundEffect>("laser1");
+        _music = Game.Content.Load<Song>("Spinning Tavern - MP3");
+        MediaPlayer.IsRepeating = true;
+        MediaPlayer.Volume = 0.3f;
+        MediaPlayer.Play(_music);
 
         _previousMouseState = Mouse.GetState();
     }
